@@ -1,3 +1,5 @@
+;test
+
 . = torg + 1000
 main:			mov #Img, r1					;set r1 as pointer to Img's beginning
 					mov #Hash, r2					;set r2 as pointer to Hash's beginnig
@@ -17,8 +19,6 @@ dupLoop:	movb (r1)+,(r4)+ 			; duplicate Img into Output label
 					cmpb Enc, #1
 					beq encrypt						;if Enc==1, jump to encrypt label
 					jmp decrypt						;else jump to decrypt label
-
-;change
 
 encrypt:
 
