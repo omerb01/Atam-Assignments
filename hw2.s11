@@ -18,7 +18,7 @@ dupLoop:	movb (r1)+,(r4)+ 			; duplicate Img into Output label
 					beq encrypt						;if Enc==1, jump to encrypt label
 					jmp decrypt						;else jump to decrypt label
 
-
+;change
 
 encrypt:
 
