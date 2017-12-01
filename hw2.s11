@@ -1,5 +1,3 @@
-;test
-
 . = torg + 1000
 main:			mov #Img, r1					;set r1 as pointer to Img's beginning
 					mov #Hash, r2					;set r2 as pointer to Hash's beginnig
