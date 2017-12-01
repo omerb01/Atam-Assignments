@@ -2,7 +2,7 @@
 main:			mov #Img, r1					;set r1 as pointer to Img's beginning
 					mov #Hash, r2					;set r2 as pointer to Hash's beginnig
 					mov #output, r4				;set r4 as pointer to Output's beginning
-					; omer is the king
+					; omer is the king CHANGE CHANGE
 					clr r3								;calculate nCols x nRows and store in r3
 					clr Temp							; --""--
 					movb nCols, r3				; --""--
