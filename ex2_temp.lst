@@ -1,0 +1,259 @@
+Technion Computer Science Department -- PDP/11 X-Assembler Version (5.5) AA.
+
+
+	S O U R C E    F I L E    :    C:\Users\Ilya\Desktop\ATAM-HW2\Git\ex2_temp.s11
+	==============================================================================
+
+000000                             1     . = torg + 1000
+001000   012701 005003             2     main:			mov #Img, r1					;set r1 as pointer to Img's beginning
+001004   012702 005043             3     					mov #Hash, r2					;set r2 as pointer to Hash's beginnig
+001010   012704 005064             4     					mov #Output, r4				;set r4 as pointer to Output's beginning
+                                   5     
+001014   005003                    6     					clr r3								;calculate nCols x nRows and store in r3
+001016   005067 000734             7     					clr Temp							; --""--
+001022   116703 003752             8     					movb nCols, r3				; --""--
+001026   116767 003747 000722      9     					movb nRows, Temp			; --""--
+001034   070367 000716            10     					mul Temp, r3					; --""--
+                                  11     
+001040   112124                   12     dupLoop:	movb (r1)+,(r4)+ 			; duplicate Img into Output label
+001042   077302                   13     					sob r3, dupLoop				; --""--
+                                  14     
+001044   012701 005064            15     					mov #Output, r1				; initialize r1
+                                  16     
+001050   126727 003726 000001     17     					cmpb Enc, #1
+001056   001402                   18     					beq ENCRYPT						;if Enc==1, jump to encrypt label
+001060   000167 000332            19     					jmp DECRYPT						;else jump to decrypt label
+                                  20     
+001064                            21     ENCRYPT:
+                                  22     
+001064   005067 000666            23     EncLine:	clr Temp
+001070   111167 000662            24     					movb (r1), Temp				;add value stored by pointer r1 (points to Img array) to r2
+001074   066702 000656            25     					add Temp, r2					; --""--
+001100   111221                   26     					movb (r2),(r1)+				; --""-- and moves to next byte in the line
+001102   012702 005043            27     					mov #Hash,r2					; --""--
+                                  28     
+001106   005367 000646            29     					dec InLineL
+001112   001364                   30     					bne EncLine 					;using first nested loop for each byte in block's line, encrypting it by Hash function
+001114   162701 000004            31     					sub #4,r1							;initialize r1 to the first element in a block's line
+                                  32     
+001120   016767 000636 000626     33     					mov RowLoop, InLineCyclic		;Initialize cyclic counter
+001126   162767 000004 000620     34     					sub #4,InLineCyclic					; --""--
+001134   005467 000614            35     					neg InLineCyclic						; --""--
+                                  36     
+001140   005767 000610            37     					tst InLineCyclic
+001144   001424                   38     					beq EndDntCycl					;if inline cyclic == 0, pass
+                                  39     
+001146   012767 000003 000604     40     EncRepCycl:	mov #3, InLineL				;initialize InLineL for cyclMov loop
+001154   062701 000003            41     					add #3,r1							;initialize r1 to point to the last element in a block's line
+                                  42     
+                                  43     
+001160   005067 000572            44     					clr Temp							;Initialize temp and place in it the last element in the line
+001164   111167 000566            45     					movb (r1), Temp				; --""--
+                                  46     
+001170   005301                   47     EncCyclMov:	dec r1								;move the value of (r1) to the next byte
+001172   111161 000001            48     					movb (r1),1(r1)				; --""--
+001176   005367 000556            49     					dec InLineL
+001202   001372                   50     					bne EncCyclMov						;if finished one cyclic move, continue
+001204   116711 000546            51     					movb Temp, (r1)				;restore the last element, last part of the cyclic move
+001210   005367 000540            52     					dec InLineCyclic
+001214   001354                   53     					bne EncRepCycl						;if finished cyclic operation on the line, continue
+                                  54     
+001216   005067 000534            55     EndDntCycl:	clr Temp							;moves r1 to point to a beginning of the next line in a block
+001222   116767 003552 000526     56     					movb nCols, Temp			; --""--
+001230   066701 000522            57     					add Temp, r1					; --""--
+                                  58     
+001234   012767 000004 000516     59     					mov #4, InLineL				;initialize InLineL for first nested loop
+001242   005367 000514            60     					dec RowLoop
+001246   001306                   61     					bne EncLine						;using second nested loop for each line in Img's block, Encrypting it by cyclic move
+                                  62     
+001250   010105                   63     					mov r1, r5						; --""--
+001252   162705 005064            64     					sub #Output, r5				; --""--
+001256   005067 000474            65     					clr Temp							; --""--
+001262   116767 003512 000466     66     					movb nCols, Temp			; --""--
+001270   071467 000462            67     					div Temp, r4					; --""--
+001274   005067 000456            68     					clr Temp							; --""--
+001300   116767 003475 000450     69     					movb nRows, Temp			; --""--
+001306   012767 000004 000446     70     					mov #4, RowLoop				; --""--
+001314   020467 000436            71     					cmp r4, Temp					; --""--
+001320   103661                   72     					blo EncLine						; --""--
+                                  73     
+                                  74     
+001322   005067 000430            75     					clr Temp							; calculates nRows x nCols and stores it in r3
+001326   116767 003446 000422     76     					movb nCols, Temp			; --""--
+001334   016703 000416            77     					mov Temp, r3					; --""--
+001340   005067 000412            78     					clr Temp							; --""--
+001344   116767 003431 000404     79     					movb nRows, Temp			; --""--
+001352   070367 000400            80     					mul Temp, r3					; --""--
+                                  81     
+001356   160301                   82     					sub r3, r1						; update r1 to the next block's column
+001360   062701 000004            83     					add #4, r1						; --""--
+                                  84     
+001364   010104                   85     					mov r1, r4						; if (((r1-Output)>=nCols)) continue
+001366   162704 005064            86     					sub #Output, r4				; --""--
+001372   005067 000360            87     					clr Temp							; --""--
+001376   116767 003376 000352     88     					movb nCols, Temp			; --""--
+001404   020467 000346            89     					cmp r4, Temp					; --""--
+001410   002625                   90     					blt EncLine						; --""--
+                                  91     
+                                  92     
+                                  93     
+001412   000167 000334            94     jmp finish
+                                  95     
+001416                            96     DECRYPT:
+                                  97     
+001416   012767 177777 000332     98     DecLine:		mov #-1, Temp					;initialize Temp as counter in Hash
+001424   005267 000326            99     DecByte:		inc Temp							;find the corresponding index for value in
+                                 100     																;Hash that is equal to value in Img
+001430   121122                  101     						cmpb (r1), (r2)+			; --""--
+001432   001374                  102     						bne DecByte						; --""--
+                                 103     
+001434   012702 005043           104     						mov #Hash, r2					;initialize r2 to pointer to Hash
+001440   116721 000312           105     						movb Temp, (r1)+			;decrypt byte
+001444   005367 000310           106     						dec InLineL
+001450   001362                  107     						bne DecLine
+001452   162701 000004           108     						sub #4,r1							;initialize r1 to the start of a block's line
+                                 109     
+001456   016767 000300 000270    110     						mov RowLoop, InLineCyclic		;Initialize cyclic counter
+001464   162767 000004 000262    111     						sub #4,InLineCyclic					; --""--
+001472   005467 000256           112     						neg InLineCyclic						; --""--
+                                 113     
+001476   005767 000252           114     						tst InLineCyclic
+001502   001424                  115     						beq DecDntCycl							;if Cyclic counter != 0 then don't cycle
+                                 116     
+001504   012767 000003 000246    117     DecRepCycl:	mov #3, InLineL							;initialize InLineL for cyclic move loop
+                                 118     
+001512   005067 000240           119     						clr Temp										;stores the first byte in a block's line
+001516   111167 000234           120     						movb (r1), Temp							; --""--
+                                 121     
+001522   005201                  122     DecCyclMov:	inc r1
+001524   111161 177777           123     						movb (r1),-1(r1)						;mov value in next byte to the previous byte
+001530   005367 000224           124     						dec InLineL									; --""--
+001534   001372                  125     						bne DecCyclMov							;if finished cycle move for line, continue
+001536   116711 000214           126     						movb Temp, (r1)							;restore the value stored in Temp
+001542   162701 000003           127     						sub #3, r1									;initialize r1
+001546   005367 000202           128     						dec InLineCyclic
+001552   001354                  129     						bne DecRepCycl							;repeat cyclic move in block
+                                 130     
+001554   005067 000176           131     DecDntCycl:	clr Temp										;move to the next block's line
+001560   116767 003214 000170    132     						movb nCols, Temp						; --""--
+001566   066701 000164           133     						add Temp, r1								; --""--
+                                 134     
+001572   012767 000004 000160    135     						mov #4, InLineL							;initialize InLineL for DecLine loop
+001600   005367 000156           136     						dec RowLoop
+001604   001304                  137     						bne DecLine
+                                 138     
+001606   005004                  139     						clr r4								; if(((r1-Output)/nCols) >= nRows) continue | checks if we didn't bypass nRows, therefore if the
+                                 140     																	; index is still legal
+001610   010105                  141     						mov r1, r5						; --""--
+001612   162705 005064           142     						sub #Output, r5				; --""--
+001616   005067 000134           143     						clr Temp							; --""--
+001622   116767 003152 000126    144     						movb nCols, Temp			; --""--
+001630   071467 000122           145     						div Temp, r4					; --""--
+001634   005067 000116           146     						clr Temp							; --""--
+001640   116767 003135 000110    147     						movb nRows, Temp			; --""--
+001646   012767 000004 000106    148     						mov #4, RowLoop				; --""--
+001654   020467 000076           149     						cmp r4, Temp					; --""--
+001660   103656                  150     						blo DecLine						; --""--
+                                 151     
+                                 152     
+001662   005067 000070           153     						clr Temp							; calculates nRows x nCols and stores it in r3
+001666   116767 003106 000062    154     						movb nCols, Temp			; --""--
+001674   016703 000056           155     						mov Temp, r3					; --""--
+001700   005067 000052           156     						clr Temp							; --""--
+001704   116767 003071 000044    157     						movb nRows, Temp			; --""--
+001712   070367 000040           158     						mul Temp, r3					; --""--
+                                 159     
+001716   160301                  160     						sub r3, r1						; update r1 to the next block's column
+001720   062701 000004           161     						add #4, r1						; --""--
+                                 162     
+001724   010104                  163     						mov r1, r4						; if (((r1-Output)>=nCols)) continue
+001726   162704 005064           164     						sub #Output, r4				; --""--
+001732   005067 000020           165     						clr Temp							; --""--
+001736   116767 003036 000012    166     						movb nCols, Temp			; --""--
+001744   020467 000006           167     						cmp r4, Temp					; --""--
+001750   002622                  168     						blt DecLine						; --""--
+                                 169     
+001752   000000                  170     finish:	 		halt
+001754                           171     .even
+001754   000000                  172     InLineCyclic:		.word 	0
+001756   000000                  173     Temp:						.word 	0
+001760   000004                  174     InLineL:	 			.word		4
+001762   000004                  175     RowLoop:				.word 	4
+                                 176     
+                                 177     ;nCols: 					.byte 	10
+                                 178     ;nRows: 					.byte 	8
+                                 179     ;Enc: 						.byte		0
+                                 180     ;Img: 						.byte 	3, 6, 14,15,2,16,5,11
+                                 181     ;								.byte 	7,5,16,2,4,5,6,3
+                                 182     ;								.byte 	1,12,13,10,1,12,16,0
+                                 183     ;								.byte		2,10,11,1,4,5,2,11
+                                 184     ;								.byte 	5,14,16,5,5,4,3,2
+                                 185     ;								.byte		15,4,7,13,2,5,4,3
+                                 186     ;								.byte 	3,6,1,4,3,2,5,4
+                                 187     ;								.byte		4,3,17,14,4,3,2,5
+                                 188     
+                                 189     ;Img: 						.byte 	1, 4, 12, 13, 0, 14, 3, 7
+                                 190     ;								.byte 	3, 14, 0, 5, 3, 4, 1, 2
+                                 191     ;								.byte 	11, 6 ,17, 10, 14, 16, 17, 10
+                                 192     ;								.byte		17, 0, 6, 7, 7, 2, 3, 0
+                                 193     ;								.byte 	3, 12, 14, 3, 3, 2, 1, 0
+                                 194     ;								.byte		2, 5, 11, 13, 3, 2, 1, 0
+                                 195     ;								.byte 	17, 2, 1, 4, 3, 2, 1, 0
+                                 196     ;								.byte		12, 2, 1, 15, 3, 2, 1, 0
+                                 197     ;Hash:						.byte 	2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
+                                 198     ;Output:					.byte 	0
+001764                           199     . = torg + 5000
+005000      010                  200     nCols: 		.byte 10
+005001      004                  201     nRows: 	.byte 4
+005002      001                  202     Enc: 		.byte 1
+005003      001    002    001    203     Img: 		.byte	 1,  2,  1,  2, 0,   1,   2,    3 
+            002    000    001            
+            002    003                   
+005013      003    004    003    204     	 	.byte	 3,  4,  3,  4, 4,   5,   6,    7
+            004    004    005            
+            006    007                   
+005023      005    006    005    205     	 	.byte	 5,  6,  5,  6, 10, 11, 12, 13
+            006    010    011            
+            012    013                   
+005033      007    000    007    206     	 	.byte	 7,  0,  7,  0, 14, 15, 16, 17
+            000    014    015            
+            016    017                   
+005043      002    003    004    207     Hash:		.byte 	2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
+            005    006    007            
+            010    011    012            
+            013    014    015            
+            016    017    000            
+            001                          
+005063      000                  208     .even
+005064   000000 000000 000000    209     Output: .blkw 20
+
+
+	S Y M B O L   T A B L E
+	=======================
+
+SYMBOL    VALUE   TYPE
+------    -----   ----
+main      001000  text     
+Img       005003  text     
+Hash      005043  text     
+Output    005064  text     
+Temp      001756  text     
+nCols     005000  text     
+nRows     005001  text     
+dupLoop   001040  text     
+Enc       005002  text     
+ENCRYPT   001064  text     
+DECRYPT   001416  text     
+EncLine   001064  text     
+InLineL   001760  text     
+RowLoop   001762  text     
+InLineCy  001754  text     
+EndDntCy  001216  text     
+EncRepCy  001146  text     
+EncCyclM  001170  text     
+finish    001752  text     
+DecLine   001416  text     
+DecByte   001424  text     
+DecDntCy  001554  text     
+DecRepCy  001504  text     
+DecCyclM  001522  text     

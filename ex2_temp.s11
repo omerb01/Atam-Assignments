@@ -1,0 +1,209 @@
+. = torg + 1000
+main:			mov #Img, r1					;set r1 as pointer to Img's beginning
+					mov #Hash, r2					;set r2 as pointer to Hash's beginnig
+					mov #Output, r4				;set r4 as pointer to Output's beginning
+
+					clr r3								;calculate nCols x nRows and store in r3
+					clr Temp							; --""--
+					movb nCols, r3				; --""--
+					movb nRows, Temp			; --""--
+					mul Temp, r3					; --""--
+
+dupLoop:	movb (r1)+,(r4)+ 			; duplicate Img into Output label
+					sob r3, dupLoop				; --""--
+
+					mov #Output, r1				; initialize r1
+
+					cmpb Enc, #1
+					beq ENCRYPT						;if Enc==1, jump to encrypt label
+					jmp DECRYPT						;else jump to decrypt label
+
+ENCRYPT:
+
+EncLine:	clr Temp
+					movb (r1), Temp				;add value stored by pointer r1 (points to Img array) to r2
+					add Temp, r2					; --""--
+					movb (r2),(r1)+				; --""-- and moves to next byte in the line
+					mov #Hash,r2					; --""--
+
+					dec InLineL
+					bne EncLine 					;using first nested loop for each byte in block's line, encrypting it by Hash function
+					sub #4,r1							;initialize r1 to the first element in a block's line
+
+					mov RowLoop, InLineCyclic		;Initialize cyclic counter
+					sub #4,InLineCyclic					; --""--
+					neg InLineCyclic						; --""--
+
+					tst InLineCyclic
+					beq EndDntCycl					;if inline cyclic == 0, pass
+
+EncRepCycl:	mov #3, InLineL				;initialize InLineL for cyclMov loop
+					add #3,r1							;initialize r1 to point to the last element in a block's line
+
+
+					clr Temp							;Initialize temp and place in it the last element in the line
+					movb (r1), Temp				; --""--
+
+EncCyclMov:	dec r1								;move the value of (r1) to the next byte
+					movb (r1),1(r1)				; --""--
+					dec InLineL
+					bne EncCyclMov						;if finished one cyclic move, continue
+					movb Temp, (r1)				;restore the last element, last part of the cyclic move
+					dec InLineCyclic
+					bne EncRepCycl						;if finished cyclic operation on the line, continue
+
+EndDntCycl:	clr Temp							;moves r1 to point to a beginning of the next line in a block
+					movb nCols, Temp			; --""--
+					add Temp, r1					; --""--
+
+					mov #4, InLineL				;initialize InLineL for first nested loop
+					dec RowLoop
+					bne EncLine						;using second nested loop for each line in Img's block, Encrypting it by cyclic move
+
+					mov r1, r5						; --""--
+					sub #Output, r5				; --""--
+					clr Temp							; --""--
+					movb nCols, Temp			; --""--
+					div Temp, r4					; --""--
+					clr Temp							; --""--
+					movb nRows, Temp			; --""--
+					mov #4, RowLoop				; --""--
+					cmp r4, Temp					; --""--
+					blo EncLine						; --""--
+
+
+					clr Temp							; calculates nRows x nCols and stores it in r3
+					movb nCols, Temp			; --""--
+					mov Temp, r3					; --""--
+					clr Temp							; --""--
+					movb nRows, Temp			; --""--
+					mul Temp, r3					; --""--
+
+					sub r3, r1						; update r1 to the next block's column
+					add #4, r1						; --""--
+
+					mov r1, r4						; if (((r1-Output)>=nCols)) continue
+					sub #Output, r4				; --""--
+					clr Temp							; --""--
+					movb nCols, Temp			; --""--
+					cmp r4, Temp					; --""--
+					blt EncLine						; --""--
+
+
+
+jmp finish
+
+DECRYPT:
+
+DecLine:		mov #-1, Temp					;initialize Temp as counter in Hash
+DecByte:		inc Temp							;find the corresponding index for value in
+																;Hash that is equal to value in Img
+						cmpb (r1), (r2)+			; --""--
+						bne DecByte						; --""--
+
+						mov #Hash, r2					;initialize r2 to pointer to Hash
+						movb Temp, (r1)+			;decrypt byte
+						dec InLineL
+						bne DecLine
+						sub #4,r1							;initialize r1 to the start of a block's line
+
+						mov RowLoop, InLineCyclic		;Initialize cyclic counter
+						sub #4,InLineCyclic					; --""--
+						neg InLineCyclic						; --""--
+
+						tst InLineCyclic
+						beq DecDntCycl							;if Cyclic counter != 0 then don't cycle
+
+DecRepCycl:	mov #3, InLineL							;initialize InLineL for cyclic move loop
+
+						clr Temp										;stores the first byte in a block's line
+						movb (r1), Temp							; --""--
+
+DecCyclMov:	inc r1
+						movb (r1),-1(r1)						;mov value in next byte to the previous byte
+						dec InLineL									; --""--
+						bne DecCyclMov							;if finished cycle move for line, continue
+						movb Temp, (r1)							;restore the value stored in Temp
+						sub #3, r1									;initialize r1
+						dec InLineCyclic
+						bne DecRepCycl							;repeat cyclic move in block
+
+DecDntCycl:	clr Temp										;move to the next block's line
+						movb nCols, Temp						; --""--
+						add Temp, r1								; --""--
+
+						mov #4, InLineL							;initialize InLineL for DecLine loop
+						dec RowLoop
+						bne DecLine
+
+						clr r4								; if(((r1-Output)/nCols) >= nRows) continue | checks if we didn't bypass nRows, therefore if the
+																	; index is still legal
+						mov r1, r5						; --""--
+						sub #Output, r5				; --""--
+						clr Temp							; --""--
+						movb nCols, Temp			; --""--
+						div Temp, r4					; --""--
+						clr Temp							; --""--
+						movb nRows, Temp			; --""--
+						mov #4, RowLoop				; --""--
+						cmp r4, Temp					; --""--
+						blo DecLine						; --""--
+
+
+						clr Temp							; calculates nRows x nCols and stores it in r3
+						movb nCols, Temp			; --""--
+						mov Temp, r3					; --""--
+						clr Temp							; --""--
+						movb nRows, Temp			; --""--
+						mul Temp, r3					; --""--
+
+						sub r3, r1						; update r1 to the next block's column
+						add #4, r1						; --""--
+
+						mov r1, r4						; if (((r1-Output)>=nCols)) continue
+						sub #Output, r4				; --""--
+						clr Temp							; --""--
+						movb nCols, Temp			; --""--
+						cmp r4, Temp					; --""--
+						blt DecLine						; --""--
+
+finish:	 		halt
+.even
+InLineCyclic:		.word 	0
+Temp:						.word 	0
+InLineL:	 			.word		4
+RowLoop:				.word 	4
+
+;nCols: 					.byte 	10
+;nRows: 					.byte 	8
+;Enc: 						.byte		0
+;Img: 						.byte 	3, 6, 14,15,2,16,5,11
+;								.byte 	7,5,16,2,4,5,6,3
+;								.byte 	1,12,13,10,1,12,16,0
+;								.byte		2,10,11,1,4,5,2,11
+;								.byte 	5,14,16,5,5,4,3,2
+;								.byte		15,4,7,13,2,5,4,3
+;								.byte 	3,6,1,4,3,2,5,4
+;								.byte		4,3,17,14,4,3,2,5
+
+;Img: 						.byte 	1, 4, 12, 13, 0, 14, 3, 7
+;								.byte 	3, 14, 0, 5, 3, 4, 1, 2
+;								.byte 	11, 6 ,17, 10, 14, 16, 17, 10
+;								.byte		17, 0, 6, 7, 7, 2, 3, 0
+;								.byte 	3, 12, 14, 3, 3, 2, 1, 0
+;								.byte		2, 5, 11, 13, 3, 2, 1, 0
+;								.byte 	17, 2, 1, 4, 3, 2, 1, 0
+;								.byte		12, 2, 1, 15, 3, 2, 1, 0
+;Hash:						.byte 	2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
+;Output:					.byte 	0
+. = torg + 5000
+nCols: 		.byte 10
+nRows: 	.byte 4
+Enc: 		.byte 1
+Img: 		.byte	 1,  2,  1,  2, 0,   1,   2,    3 
+	 	.byte	 3,  4,  3,  4, 4,   5,   6,    7
+	 	.byte	 5,  6,  5,  6, 10, 11, 12, 13
+	 	.byte	 7,  0,  7,  0, 14, 15, 16, 17
+Hash:		.byte 	2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
+.even
+Output: .blkw 20
