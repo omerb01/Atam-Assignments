@@ -40,7 +40,6 @@ EncLine:	clr Temp
 EncRepCycl:	mov #3, InLineL				;initialize InLineL for cyclMov loop
 					add #3,r1							;initialize r1 to point to the last element in a block's line
 
-
 					clr Temp							;Initialize temp and place in it the last element in the line
 					movb (r1), Temp				; --""--
 
@@ -71,7 +70,6 @@ EndDntCycl:	clr Temp							;moves r1 to point to a beginning of the next line in
 					cmp r4, Temp					; --""--
 					blo EncLine						; --""--
 
-
 					clr Temp							; calculates nRows x nCols and stores it in r3
 					movb nCols, Temp			; --""--
 					mov Temp, r3					; --""--
@@ -88,8 +86,6 @@ EndDntCycl:	clr Temp							;moves r1 to point to a beginning of the next line in
 					movb nCols, Temp			; --""--
 					cmp r4, Temp					; --""--
 					blt EncLine						; --""--
-
-
 
 jmp finish
 
