@@ -59,14 +59,14 @@ EndDntCycl:	clr Temp							;moves r1 to point to a beginning of the next line in
 					dec RowLoop
 					bne EncLine						;using second nested loop for each line in Img's block, Encrypting it by cyclic move
 
-					mov r1, r5						; --""--
+					mov r1, r5						; calculates if the program encrypted all blocks in a single column
 					sub #Output, r5				; --""--
 					clr Temp							; --""--
 					movb nCols, Temp			; --""--
 					div Temp, r4					; --""--
 					clr Temp							; --""--
 					movb nRows, Temp			; --""--
-					mov #4, RowLoop				; --""--
+					mov #4, RowLoop				; --""-- + initialize loop itrations over lines in a block
 					cmp r4, Temp					; --""--
 					blo EncLine						; --""--
 
