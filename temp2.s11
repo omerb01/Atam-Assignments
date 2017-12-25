@@ -1,0 +1,10 @@
+.=torg+1000
+main:   jsr r4, rem10
+        .word 35
+        .word 0
+        halt
+rem10:  mov @(r5)+, r1
+        sxt r0
+        div #10, r0
+        mov r1,@(r5)+
+        rts r5
