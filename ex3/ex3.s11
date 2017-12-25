@@ -3,14 +3,14 @@ NIL = 0
 main:	mov	pc,	sp
       tst	-(sp)
       clr	r3
-      mov	#10,	r4        ; r4=10
+      mov	#10,	r4        ;
 
-loop:	mov	#dict,	-(sp)      ; pushes dict address into stack
-      sub	#2,	(sp)           ; stack points to L9's right leaf
-      add	r4,	(sp)           ; stack points to dict's text4
-      add	r4,	(sp)           ; stack points to dict's text8
-      mov	@0(sp),	(sp)       ; stack points now to last element in Dict
-      mov	#L0,	-(sp)        ; sp = #L0
+loop:	mov	#dict,	-(sp)      ;
+      sub	#2,	(sp)           ;
+      add	r4,	(sp)           ;
+      add	r4,	(sp)           ;
+      mov	@0(sp),	(sp)       ;
+      mov	#L0,	-(sp)        ; 
       jsr	pc,	chkT           ;
       cmp	(sp)+,	(sp)+
       add	r2,	r3
@@ -39,7 +39,7 @@ chkN:
       add	#4,	(sp)
       mov	@0(sp),	(sp)
       jsr	pc,	chkN
-exit:	cmp	(sp)+,	(sp)+
+exit:	cmp	(sp)+,	(sp)+    ;pops two values in one line
       br	out
 success: inc	r2
 out:  mov	(sp)+,	r1
@@ -47,11 +47,11 @@ out:  mov	(sp)+,	r1
       rts	pc
 
 chkT:
-  	  mov	r0,	-(sp)        ; save r0
-      mov	r1,	-(sp)        ; save r1
+  	  mov	r0,	-(sp)        ;
+      mov	r1,	-(sp)        ;
       clr	r2
-      mov	10(sp),	-(sp)    ; pushes #text8 again
-      mov	10(sp),	-(sp)    ; pushes #L0 again
+      mov	10(sp),	-(sp)    ;
+      mov	10(sp),	-(sp)    ;
       jsr	pc,	chkN         ;
       tst	r2
       bne	treeOut
@@ -69,8 +69,8 @@ chkT:
       mov	@0(sp),	(sp)
       jsr	pc,	chkT
 treeOut:  cmp	(sp)+,	(sp)+
-          mov	(sp)+,	r1     ; pop r1
-          mov	(sp)+,	r0     ; pop r0
+          mov	(sp)+,	r1     ;
+          mov	(sp)+,	r0     ;
           rts	pc
 
 L0: .word 'A, L5, L2
