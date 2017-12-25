@@ -1,0 +1,776 @@
+<html>
+<body>
+<!--
+/* Portable PDP11 Simulator                                         */
+/*                                                                  */
+/* Version: 4.0                                                     */
+/* Author:  Aythan Avior                                            */
+/* Date:    1.1.11                                                  */
+-->
+
+<a name="top"><h3>SIM11  ON-LINE  HELP :   commands  list</h3></a>
+<pre>
+
+BREAKPOINTS :                           DISPLAY/SET :
+    <a href="#b">b  -  set or show breakpoints.</a>          <a href="#e">e  -  examine  memory.</a>
+    <a href="#d">d  -  delete  a  breakpoint.</a>            <a href="#m">m  -  modify  memory.</a>
+EXECUTE :                                   <a href="#r">r  -  display/set  registers.</a>
+    <a href="#R">R  -  restart.</a>                          <a href="#l">l  -  list the symbol table.</a>
+    <a href="#c">c  -  continue.</a>                         <a href="#f">f  -  full-screen parameters.</a>
+    <a href="#s">s  -  single  step.</a>                     <a href="#C">C  -  full-screen colors (PC only).</a>
+    <a href="#t">t  -  continue  with  trace.</a>            <a href="#a">a  -  full-screen address peep.</a>
+FILE OPERATIONS :                           <a href="#S">S  -  full-screen scroll source.</a>
+    <a href="#o">o  -  open object/executable file.</a> 
+    <a href="#O">O  -  re-make object/executable file.</a>
+    <a href="#IN">&lt;  -  redirect stdin (Terminal Keyboard).</a>
+    <a href="#OUT">&gt;  -  redirect stdout (Terminal Printer).</a>
+    <a href="#L">L  -  start/stop  logging.</a>          ODT-LIKE :
+MISCELLANEOUS :                             <a href="#p">p  -  proceed ( like c ).</a>
+    <a href="#F">F  -  on/off full-screen.</a>               <a href="#g">g  -  goto.</a>
+    <a href="#M">M  -  on/off  memory  trace.</a>            <a href="#sl">/  -  open  memory location.</a>
+    <a href="#T">T  -  enable/disable  traps.</a>            <a href="#dl">$  -  open  register location.</a>
+    <a href="#P">P  -  Parameters and options.</a>       ODT-LIKE SUBCOMMANDS :
+    <a href="#i">i  -  print simulator information.</a>      <a href="#dt">.  -  change  location  forwards.</a>
+    <a href="#h">h  -  help on commands.</a>                 <a href="#ct">^  -  change  location  backwards.</a>
+    <a href="#q">q  -  quit.</a>                             <a href="#at">@  -  indirect  change  location.</a>
+    <a href="#eq">=  -  evaluate  expression.</a>             <a href="#us">_  -  pc  relative change location.</a>
+
+*  Several commands may be specified in one line, separated by a semicolon (;).
+*  For more help type "h #", where "#" is any command name.
+
+
+</pre>
+<a name="b"><h3>SIM11  ON-LINE  HELP :   b  command</h3></a>
+<pre>
+
+SYNOPSIS
+                b [ addr [ , &lt;command_list&gt; ] ]
+
+DESCRIPTION
+     Without a parameter this command supplies a list of all active "break-
+     points",  i.e. those addresses of instructions which when reached (and
+     before they are executed) cause the execution to stop and a  new  user
+     command  to be requested.
+     
+     When an expression is supplied as the first parameter to this command,
+     a breakpoint is installed at the address represented by the expression.
+
+     The second  parameter is a list of  simulator commands  to be executed
+     when reaching the breakpoint. If you do not want to stop at the break-
+     point, the last command on that list should be "c", or "p", or "t".
+     Note that, the whole list must be enclosed in angle brackets:
+     &lt; ... ; ... &gt; .
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="d"><h3>SIM11  ON-LINE  HELP :   d  command</h3></a>
+<pre>
+
+SYNOPSIS
+                d  [ addr ]
+
+DESCRIPTION
+     Without a parameter this command nullifies (deletes) all active break-
+     points.   When  an  expression  is present, only the breakpoint at the
+     address represented by the expression is removed.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="R"><h3>SIM11  ON-LINE  HELP :   R  command</h3></a>
+<pre>
+
+SYNOPSIS
+                R
+
+DESCRIPTION
+     Restart the machine.
+
+     Main memory and registers are all re-assigned their initial values.
+     However, the address view and list of breakpoints is left unchanged.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="c"><h3>SIM11  ON-LINE  HELP :   c  command</h3></a>
+<pre>
+
+SYNOPSIS
+                c
+
+DESCRIPTION
+     Continue execution with the instruction which is  pointed  to  by  the
+     contents  of  the PC (r7).  Since the PC's initial contents are set by
+     the value of the label  "main"  at the Assembler source program,   the
+     first  time this command is invoked (and the PC has not been changed -
+     see below) it starts execution at the address  specified  at  assembly
+     time. (If  "main" was not defined at assembly time the default entry
+     point is octal 2000, also the entry point may be set explicitly using
+     the appropriate option of the ld11 program).
+
+     Execution is stopped whenever a "halt" instruction, a "breakpoint"  or
+     an  error  are encountered.  Control is always passed back to the user
+     by giving the prompt sign ("@") and waiting for new user commands.
+
+     The user can force the simulator to stop execution by pressing the
+     "interrupt" key, which is on UNIX intr-key (default "^C"), however ...
+     When the GUI is used, the "Stop" button serves that purpose.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="s"><h3>SIM11  ON-LINE  HELP :   s  command</h3></a>
+<pre>
+
+SYNOPSIS
+                s
+
+DESCRIPTION
+     Execute a single instruction and then stop displaying the current con-
+     tents  of  all registers.  The instruction executed is that pointed at
+     by the PC.  In other words, execute a "single step".
+
+ 
+</pre>
+<a href="#top">Back to top</a>
+<a name="t"><h3>SIM11  ON-LINE  HELP :   t  command</h3></a>
+<pre>
+
+SYNOPSIS
+                t
+
+DESCRIPTION
+     Same as "c" but after each instruction is executed  the  updated  con-
+     tents of the registers are displayed.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="e"><h3>SIM11  ON-LINE  HELP :   e  command</h3></a>
+<pre>
+
+SYNOPSIS
+                e  [ start_addr  [ , end_addr ] ]
+
+DESCRIPTION
+     Display the contents of  memory  ("examine").   If  no  arguments  are
+     specified,  then all the  memory is displayed.   The argument may be a
+     single expression, in which case that memory location is displayed, or
+     a pair of  expressions separated by a comma,  in which case all memory
+     between (and including) the two specified addresses is displayed.  The
+     space after the "e" may be omitted.
+
+     If only one memory word is examined,  its contents  are display in the
+     following representations:
+
+        one octal word
+        one signed decimal word
+        one unsigned decimal word
+        one hexadecimal word
+        two octal bytes
+        two ascii characters
+
+    Otherwise, only octal words are displayed.
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="m"><h3>SIM11  ON-LINE  HELP :   m  command</h3></a>
+<pre>
+
+SYNOPSIS
+                m addr=value
+                m addr=value1,value2, ... , value-n
+
+DESCRIPTION
+     Set ("modify") the contents of a memory location.  Assigns "value"  to
+     memory location "addr".
+
+     Addr should be word-address (even).
+
+     If more than one value is specified, the list of values is assigned to
+     consecutive words in the memory.  No more than 8 values may be listed.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="r"><h3>SIM11  ON-LINE  HELP :   r  command</h3></a>
+<pre>
+
+SYNOPSIS
+                r [ reg=value ]
+
+DESCRIPTION
+     With no arguments this command causes the display of all  the  current
+     register  values.
+
+     If arguments are specified, "value" is assigned to register "reg",
+     which should be an expression with a value between 0 and 7,
+     representing one of the register r0, r1, ..., r7.
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="l"><h3>SIM11  ON-LINE  HELP :   l  command</h3></a>
+<pre>
+
+SYNOPSIS
+                l
+
+DESCRIPTION
+     This command takes no arguments, and lists the symbol table.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="f"><h3>SIM11  ON-LINE  HELP :   f  command</h3></a>
+<pre>
+
+SYNOPSIS
+                f [ param=value ]
+
+DESCRIPTION
+     With no arguments this command causes the display of all  the  current
+     full screen parameters values,   and their maximal value.
+
+     If arguments are specified, "value" is assigned to parameter  "param",
+     which should be an expression with a value between 0 and 7.    "value"
+     must be between 0 and the maximal value for this parameter.
+     If the simulator is in full screen mode,  a display refresh is done.
+
+SEMANTICS
+       f0 - Stack alignment - the address of the top stack row is  k * 2**f0.
+       f1 - Source lines    - the number of lines in the Source window.
+       f2 - Output lines    - the number of lines in the Input/Output window.
+       f3 - Reserved
+       f4 - Reserved
+       f5 - Reserved
+       f6 - Reserved
+       f7 - Reserved
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="C"><h3>SIM11  ON-LINE  HELP :   C  command</h3></a>
+<pre>
+
+SYNOPSIS
+                C [ color=value ]
+
+DESCRIPTION
+     With no arguments this command causes the display of all  the  current
+     (non-GUI) full screen color values,   and their maximal value.
+
+     If arguments are specified, "value" is assigned to color "color", that
+     should be an expression with a value between 0 and 7.  "color" must be
+     between 0 and the maximal value for this color.
+     If the simulator is in full screen mode,  a display refresh is done.
+
+SEMANTICS
+       C0 - Separators (both horizontal and vertical)
+       C1 - Registers window
+       C2 - Stack window
+       C3 - Memory window
+       C4 - Break-points window
+       C5 - Inpout/Output window
+       C6 - Source window
+       C7 - Talk window
+
+     Colors are supported in the PC version only,   where the color values
+     have 8 bits, according to the BIOS definition:
+
+     +-------+-----------------------+-------------------------------+
+     |ForGnd |      BackGround       |           ForGround           |
+     +-------+-------+-------+-------+-------+-------+-------+-------+
+     | Blink |  Red  | Green | Blue  |Intense|  Red  | Green | Blue  |
+     +-------+-------+-------+-------+-------+-------+-------+-------+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="a"><h3>SIM11  ON-LINE  HELP :   a  command</h3></a>
+<pre>
+
+SYNOPSIS
+                a
+                a index
+                a index=value1
+                a index=value1,
+                a index=value1,value2
+
+DESCRIPTION
+     In full screen mode, the Memory window contains 16 memory peep  lines.
+     Each line has a pointer, and can be in one of the following 3 modes:
+
+       empty    - not used.
+       single   - displays single memory location in variuos formats.
+       multiple - displays for consecutive memory locations in octal.
+
+     Empty lines are black.
+
+     Single lines have the following format:
+       [address]: octal decimal low-byte high-byte low-char high-char.
+
+     Multiple lines have the following format:
+       address  M[address]  M[adderss+2]  M[address+4]  M[address+6]
+
+     With no arguments this command prints the index,  pointer and  mode of
+     each line.
+
+     With index only, the command empties the specified line.
+
+     With one value and no following comma,   the command loads the pointer 
+     of the specified line (by "index") with "value1",   and sets this line
+     mode to "single".
+
+     With one value and a following comma, the command loads the pointer of
+     the specified line (by "index") with "value1", and sets this line mode
+     to "multiple".
+
+     With two values separated by a comma, the command loads the pointer of
+     the specified line (by "index") with "value1", and sets this line mode
+     to "multiple".  It then continues loading consecutive lines  (wrapping
+     from 15 to 0) with advancing pointers,  until "value2" is reached,  or 
+     all 16 lines are newly loaded.
+
+     "index" must be between 0 and 17 (15.). "value" must be a legal memory
+     address (between 0 and 077776).
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="S"><h3>SIM11  ON-LINE  HELP :   S  command</h3></a>
+<pre>
+
+SYNOPSIS
+                S  [ + | - ]
+
+DESCRIPTION
+     With a single argument of "+" or "-", this commands scroll the source
+     window either downwards in the file (+) or upwards in the file (-).
+
+     With no arguments,  the command re-displays the screen containing the
+     current line in the middle, (pointed at by the "pc", and specified by
+     the '&gt;' marker).
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="eq"><h3>SIM11  ON-LINE  HELP :   =  command</h3></a>
+<pre>
+
+SYNOPSIS
+                = expr
+
+DESCRIPTION
+     Used to evaluate an expression which is the argument to the command.
+
+     The result is displayed in the following representations:
+
+        one octal word
+        one signed decimal word
+        one unsigned decimal word
+        one hexadecimal word
+        two octal bytes
+        two ascii characters
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="F"><h3>SIM11  ON-LINE  HELP :   F  command</h3></a>
+<pre>
+
+SYNOPSIS
+                F  [ + | - ]
+
+DESCRIPTION
+     With a single argument of "+" or "-", this commands either enables (+)
+     or disables (-) (the non-GUI) full screen interface.
+
+     Full screen interface maintains 7 windows:
+
+      REGISTERS   - The 7 general registers, the ps, the IR and internal timer.
+      STACK       - The stack contents, aligned by f0 (see hf), '&gt;' - top (sp).
+      MEMORY      - Single or multiple memory peeping window (see ha).
+      BREAKPOINT  - List of active break points (see hb and hd).
+      INPUT/OUTPUT- Input for TKB, output for TPB.
+      SOURCE      - Source/Object listing (needs *.lst files &lt; 512 lines/file).
+      TALK        - Simulator commands input/output.
+
+     With no arguments, it refreshes the screen (in case the  simulator  is
+     in full screen mode), and then displays the status of the F flag.
+
+SEE ALSO
+     f, C, a, S.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="M"><h3>SIM11  ON-LINE  HELP :   M  command</h3></a>
+<pre>
+
+SYNOPSIS
+                M  [ + | - ]
+
+DESCRIPTION
+     With a single argument of "+" or "-", this commands either enables (+)
+     or disables (-) a memory trace, i.e. a display of all the memory loca-
+     tions which are being accessed during  the  execution  of  a  program.
+     Accesses  for  instruction  fetch,  data  read  and data write are all
+     displayed.
+
+     With no arguments, it displays the status of the M flag.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="T"><h3>SIM11  ON-LINE  HELP :   T  command</h3></a>
+<pre>
+
+SYNOPSIS
+                T  [ + | - ]
+
+DESCRIPTION
+     With a single argument of "+" or "-", this commands either enables (+)
+     or disables (-) machine traps.  If disabled machine traps cause
+     simulator to stop execution and print a message.
+
+     With no arguments, it displays the status of the T flag.
+
+     NOTE:  Unless you are sure what you are doing, this flag should be off,
+     that is T- .
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="h"><h3>SIM11  ON-LINE  HELP :   h  command</h3></a>
+<pre>
+
+SYNOPSIS
+                h  [ command ]
+
+DESCRIPTION
+     This command allows you to get on-line help from the simulator.
+     Without an argument a list all available commands is printed.
+     When an argument is specified, an explanation on how to use that
+     command is printed.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="o"><h3>SIM11  ON-LINE  HELP :   o  command</h3></a>
+<pre>
+
+SYNOPSIS
+                o  [ filename ]
+
+DESCRIPTION
+     This command allows the user to load an object or executable file into
+     the simulaor.
+
+     Without an argument the current object/executable file is re-loaded.
+
+     With a filename argument the specified file will be loaded.
+
+     If filename contains a suffix if must be either ".o11" or ".x11".
+
+     If filename does not contains a suffix,  the simulator will first try to
+     load a file with ".x11" suffix and if failed a file with ".o11" suffix.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="O"><h3>SIM11  ON-LINE  HELP :   O  command</h3></a>
+<pre>
+
+SYNOPSIS
+                O
+
+DESCRIPTION
+     This command allows the user to remake and reload the object/executable
+     file back into the simulaor.
+
+     If no file is already loaded into the simulator, the command fails.
+
+     This command does not accept any arguments.
+
+     The command activates the program (or batch file) "mk11" and issues the
+     current object/executable file name as the single argument for "mk11".
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="IN"><h3>SIM11  ON-LINE  HELP :   &lt;  command</h3></a>
+<pre>
+
+SYNOPSIS
+                &lt;  [ filename ]
+
+DESCRIPTION
+     This command allows the user to re-open the standard input file (stdin),
+     or redirect stdin to another file.  Stdin is the source for the
+     Terminal Keyboard of the simulated machine.
+
+     Without an argument, the command will redirect stdin to the terminal,
+     or to the terminal window in full_screen/window mode.
+
+     With one agrument the command will redirect stdin to the specified file.
+
+     If the specified file name is @, the current stdin file will be re-opened.
+     If stdin was not redirected before using the &lt; command, the simulator has
+     no idea of the current stdin file name, hence the command fails.
+
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="OUT"><h3>SIM11  ON-LINE  HELP :   &gt;  command</h3></a>
+<pre>
+
+SYNOPSIS
+                &gt;  [ filename ]
+
+DESCRIPTION
+     This command allows the user to re-open the standard output file (stdout),
+     or redirect stdout to another file.  Stdout is the target for the
+     Terminal Printer of the simulated machine.
+
+     Without an argument, the command will redirect stdout to the terminal,
+     or to the terminal window in full_screen/window mode.
+
+     With one agrument the command will redirect stdout to the specified file.
+
+     If the specified file name is @, the current stdout file will be re-opened.
+     If stdout was not redirected before using the &gt; command, the simulator has
+     no idea of the current stdout file name, hence the command fails.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="L"><h3>SIM11  ON-LINE  HELP :   L  command</h3></a>
+<pre>
+
+SYNOPSIS
+                L  [ + [filename] | - ]
+
+DESCRIPTION
+     This command allows you to control the logging of the simulator session.
+     With no arguments it just print the logging status.
+     With one argument '-' it terns the logging off.
+     With one argument '+' it turns the logging on to the default file.
+     With  '+' and a filename, it turns the logging on to that file.
+     There is no need to turn the logging off, before changing to a new file.
+     The simulator is activated with logging off unless the argument '-r'
+     or '-l filename' were specified in the command line.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="q"><h3>SIM11  ON-LINE  HELP :   q  command</h3></a>
+<pre>
+
+SYNOPSIS
+                q
+
+DESCRIPTION
+     This command exits the Simulator and returns to the system ("quit").
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="i"><h3>SIM11  ON-LINE  HELP :   i  command</h3></a>
+<pre>
+
+SYNOPSIS
+                i
+
+DESCRIPTION
+     This command prints information about the machine configuration,
+     and the simulator environment.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="sl"><h3>SIM11  ON-LINE  HELP :   /  command</h3></a>
+<pre>
+
+SYNOPSIS
+                / addr
+
+DESCRIPTION
+     The  "/"  is used  to "open"  a memory location,  i.e.  examining  its
+     contents,  and being able  to modify it and/or use it as  addresses to
+     further memory locations.  The syntax  requires  that  an   expression
+     follows   the "/", representing the memory location to be opened.
+     Memory locations are always opened in word size,  an odd address opens
+     the word containing the byte being addressed.
+
+     For example "/100" followed by a CR (carriage return)  opens  location
+     100  (octal).  The location opened can now be modified by entering any
+     octal number. 
+
+     Entering a CR after a location has been opened, without  preceding  it
+     by  any  other symbol (see below) or number,  results in that location
+     being "closed" and a prompt for a new command printed.
+
+     SUB-COMMANDS (when there is an open location):
+
+        .       change location forward
+        ^       change location backwards
+        @       change location indirect
+        _       change location relative to the PC.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="dl"><h3>SIM11  ON-LINE  HELP :   $  command</h3></a>
+<pre>
+
+SYNOPSIS
+                $ reg
+
+DESCRIPTION
+     This command  is similar to the  "/" command,  but instead of opening
+     a memory location, it opens a register.
+     When a register is open, the "_" command  is illegal.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="ct"><h3>SIM11  ON-LINE  HELP :   ^  command</h3></a>
+<pre>
+
+SYNOPSIS
+                ^
+
+DESCRIPTION
+     Once a location has been opened, the "^"  serves  to  move  backwards,
+     i.e.  close  the  present  location  and open the preceding one.  When
+     applied to open registers, it results in moving from register  "n"  to
+     register  "n-1",  where  r7 follows after r0.  Movement through memory
+     locations is in units of words, i.e. from "m" to "m-2".
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="dt"><h3>SIM11  ON-LINE  HELP :   .  command</h3></a>
+<pre>
+
+SYNOPSIS
+                .
+
+DESCRIPTION
+     Once a location has been opened, the "."  serves  to  move  forward,
+     i.e.  close  the  present  location  and open the following one.  When
+     applied to open registers, it results in moving from register  "n"  to
+     register  "n+1",  where  r0 follows after r7.  Movement through memory
+     locations is in units of words, i.e. from "m" to "m+2".
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="at"><h3>SIM11  ON-LINE  HELP :   @  command</h3></a>
+<pre>
+
+SYNOPSIS
+                @
+
+DESCRIPTION
+     This symbol is used for "indirect addressing", i.e.  the  contents  of
+     the open location are interpreted as a memory address and the location
+     corresponding to that address is  opened  after  the  present  one  is
+     closed.
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="us"><h3>SIM11  ON-LINE  HELP :   _  command</h3></a>
+<pre>
+
+SYNOPSIS
+                _
+
+DESCRIPTION
+     This symbol is used to  interpret  PC-relative  addresses  within  the
+     machine  code.  It uses the address of the currently open memory loca-
+     tion plus two, as if it were the contents of the PC, and  adds  to  it
+     the contents of the memory location as displacement.
+
+     For example, if we had "000100/001000" being displayed, entering "_" and
+     then CR would result in the opening of location 1102 (=(100+2)+1000).
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="p"><h3>SIM11  ON-LINE  HELP :   p  command</h3></a>
+<pre>
+
+SYNOPSIS
+                p
+
+DESCRIPTION
+     This is an alias for the general command "c".
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="g"><h3>SIM11  ON-LINE  HELP :   g  command</h3></a>
+<pre>
+
+SYNOPSIS
+                g  [ addr ]
+
+DESCRIPTION
+     This command is similar to the general command "c" with the difference
+     that  it accepts an argument which is loaded into the PC before start-
+     ing  execution.   The  argument  precedes  the  command  and  must  be
+     separated  from  it  by a space.  Also, the PS (status word) is zeroed
+     before control is passed to the program.
+
+     If no argument is specified, the PC is loaded with the program entry
+     point (see "c" command).
+
+
+</pre>
+<a href="#top">Back to top</a>
+<a name="P"><h3>SIM11  ON-LINE  HELP :   P  command</h3></a>
+<pre>
+
+SYNOPSIS
+                Pname=value
+
+DESCRIPTION
+     This command allows the user to change the values of internal parameters
+     of the simulator.
+
+     'Name' must be one of the following, while 'value' can be any legal
+     expression.
+
+
+     Name   Initial Value    Usage
+     ------------------------------------------------------------------------
+
+     confirm            1    Ask/don't-ask confirmation when quitting.
+
+     tks_addr      177560    The address of the TKS i/o register.
+     tkb_addr      177562    The address of the TKB i/o register.
+     tps_addr      177564    The address of the TPS i/o register.
+     tpb_addr      177566    The address of the TPB i/o register.
+     cks_addr      177546    The address of the CKS register.
+
+     rbm_cycle          1    Internal Timer cycles for Read Byte from Memory.
+     rwm_cycle          1    Internal Timer cycles for Read Word from Memory.
+     wbm_cycle          1    Internal Timer cycles for Write Byte to Memory.
+     wwm_cycle          1    Internal Timer cycles for Write Word to Memory.
+
+     rbio_cycle         1    Internal Timer cycles for Read Byte from IO (TKB).
+     rwio_cycle         1    Internal Timer cycles for Read Word from IO (TKB).
+     wbio_cycle         1    Internal Timer cycles for Write Byte to IO (TPB).
+     wwio_cycle         1    Internal Timer cycles for Write Word to IO (TPB).
+
+     tkb_cycle       1000    Internal Timer cycles to complete a TKB read.
+     tpb_cycle       1000    Internal Timer cycles to complete a TPB write.
+     clk_cycle       1000    Internal Timer cycles between Clock interrupts.
+
+     idle_increment   500    Internal Timer cycles to jump each time
+                             when 'wait'ing for input on TKB.
+
+
+</pre>
+<a href="#top">Back to top</a>
+</body>
+</html>
