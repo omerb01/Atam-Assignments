@@ -7,7 +7,14 @@ main:			mov #Img, r1					;set r1 as pointer to Img's beginning
 					clr Temp							; --""--
 					movb nCols, r3				; --""--
 					movb nRows, Temp			; --""--
+					tst Temp
+					beq endp
+					tst r3
+					beq endp
 					mul Temp, r3					; --""--
+					jmp dupLoop
+
+endp:			jmp finish
 
 dupLoop:	movb (r1)+,(r4)+ 			; duplicate Img into Output label
 					sob r3, dupLoop				; --""--
@@ -59,6 +66,7 @@ EndDntCycl:	clr Temp							;moves r1 to point to a beginning of the next line in
 					dec RowLoop
 					bne EncLine						;using second nested loop for each line in Img's block, Encrypting it by cyclic move
 
+					clr r4
 					mov r1, r5						; calculates if the program encrypted all blocks in a single column
 					sub #Output, r5				; --""--
 					clr Temp							; --""--
@@ -169,3 +177,5 @@ InLineCyclic:		.word 	0
 Temp:						.word 	0
 InLineL:	 			.word		4
 RowLoop:				.word 	4
+
+;------------------------------------------------------------
