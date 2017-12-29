@@ -10,7 +10,7 @@ loop:	mov	#dict,	-(sp)      ;
       add	r4,	(sp)           ;
       add	r4,	(sp)           ;
       mov	@0(sp),	(sp)       ;
-      mov	#L0,	-(sp)        ; 
+      mov	#L0,	-(sp)        ;
       jsr	pc,	chkT           ;
       cmp	(sp)+,	(sp)+
       add	r2,	r3
@@ -92,3 +92,4 @@ text5: .ascii<TEAM@>
 text6: .ascii<VE@>
 text7: .ascii<AE@>
 text8: .ascii<AM@>
+;comment
