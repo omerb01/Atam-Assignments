@@ -1,0 +1,423 @@
+<html>
+  <head>
+    <title>This is title</title>
+  </head>
+  <body>
+    <a name="top">&nbsp;</a><br /><br /><br />
+    <img src="P/PDP1.png" width="50" height="50"/>
+    <h2>PDP/11 Simulator GUI Help</h2>
+      <p>Click ...</p>
+    <hr />
+    <table>
+      <tr>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#quit"><img src="P/quit.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#open"><img src="P/open.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#reload"><img src="P/reload.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#reload"><img src="P/remake.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#stop"><img src="P/stop.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#restart"><img src="P/restart.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#continue"><img src="P/continue.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#step"><img src="P/step.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#trace"><img src="P/trace.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#term"><img src="P/term.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#traps"><img src="P/traps.png" /></a></td>
+        <td align="center" bgcolor="grey" width="9%">
+		<a href="#help"><img src="P/help.png" /></a></td>
+      </tr>
+      <tr>
+        <td align="center" bgcolor="grey"><a href="#quit">Quit</a></td>
+        <td align="center" bgcolor="grey"><a href="#open">Open</a></td>
+        <td align="center" bgcolor="grey"><a href="#reload">Reload</a></td>
+        <td align="center" bgcolor="grey"><a href="#remake">Remake</a></td>
+        <td align="center" bgcolor="grey"><a href="#stop">Stop</a></td>
+        <td align="center" bgcolor="grey"><a href="#restart">Restart</a></td>
+        <td align="center" bgcolor="grey"><a href="#continue">Continue</a></td>
+        <td align="center" bgcolor="grey"><a href="#step">Step</a></td>
+        <td align="center" bgcolor="grey"><a href="#trace">Trace</a></td>
+        <td align="center" bgcolor="grey"><a href="#term">Terminal</a></td>
+        <td align="center" bgcolor="grey"><a href="#traps">Traps</a></td>
+        <td align="center" bgcolor="grey"><a href="#help">Help</a></td>
+      </tr>
+    </table>
+    <hr />
+    <table>
+      <tr>
+        <a href="#register"><td align="center" bgcolor="grey" width="12%">r0</td></a>
+        <a href="#register"><td align="center" bgcolor="grey" width="12%">r1</td></a>
+        <a href="#register"><td align="center" bgcolor="grey" width="12%">r2</td></a>
+        <a href="#register"><td align="center" bgcolor="grey" width="12%">r3</td></a>
+        <a href="#register"><td align="center" bgcolor="grey" width="12%">r4</td></a>
+        <a href="#register"><td align="center" bgcolor="grey" width="12%">r5</td></a>
+        <a href="#register"><td align="center" bgcolor="grey" width="12%">sp</td></a>
+        <a href="#register"><td align="center" bgcolor="grey" width="12%">pc</td></a>
+      </tr><tr>
+        <a href="#single_view"><td align="center" bgcolor="grey" colspan="2">New&nbsp;Single</td></a>
+        <a href="#multiple_view"><td align="center" bgcolor="grey" colspan="2">New&nbsp;Multiple</td></a>
+        <a href="#clear_views"><td align="center" bgcolor="grey" colspan="2">Clear&nbsp;All&nbsp;Views</td></a>
+        <a href="#modify"><td align="center" bgcolor="grey" colspan="2">Modify&nbsp;Memory</td></a>
+      </tr><tr>
+        <a href="#new_breakpoint"><td align="center" bgcolor="grey" colspan="2">New&nbsp;BreakPoint</td></a>
+        <a href="#delete_breakpoint"><td align="center" bgcolor="grey" colspan="2">Delete&nbsp;BreakPoint</td></a>
+        <a href="#delete_all_breakpoints"><td align="center" bgcolor="grey" colspan="2">Delete&nbsp;All</td></a>
+      </tr>
+    </table>
+
+    <hr />
+    <h3>Go to: <a href="sim11-hlp.html">Commands Help</a></h3>
+    <hr />
+
+    <a name="quit">&nbsp;</a><br />
+    <img src="P/quit.png" /><h6>Quit</h6>
+    <p>
+      Exit the Simulator.
+    </p>
+    <p>
+      <i>Tip:</i> to circumvent the confirmation pop-up, create
+      a file named ".sim11rc" containing the line "Pconfirm=0".
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="open">&nbsp;</a><br />
+    <img src="P/open.png" /><h6>Open</h6>
+    <p>
+      Open and load a new object or executable file.
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#o">command o</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="reload">&nbsp;</a><br />
+    <img src="P/reload.png" /><h6>Reload</h6>
+    <p>
+      Reload the current object or executable file.
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#o">command o</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="remake">&nbsp;</a><br />
+    <img src="P/remake.png" /><h6>Remake</h6>
+    <p>
+      Re-make and re-load the current object or executable file.
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#O">command O</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+    <a name="stop">&nbsp;</a><br />
+    <img src="P/stop.png" /><h6>Stop</h6>
+    <p>
+      Stop execution of the running program and halt the machine.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+    <a name="restart">&nbsp;</a><br />
+    <img src="P/restart.png" /><h6>Restart</h6>
+      Restart the machine.
+    </p><p>
+      Main memory and registers are all re-assigned their initial values.
+      However, the address view and list of breakpoints are left unchanged.
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#R">command R</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="continue">&nbsp;</a><br />
+    <img src="P/continue.png" /><h6>Continue</h6>
+    <p>
+      Continue execution with the instruction which is  pointed  at  by  the
+      contents  of  the PC (r7).  Since the PC's initial contents is set to
+      the value of the label  "main"  in the assembly source program,   the
+      first  time this command is invoked,
+      it starts execution at the address  "main".
+      (If  "main" was not defined in the source program, the default entry
+      point is octal 2000. In addition, the entry point can be specified explicitly to any value using
+      the appropriate option of the ld11 program.)
+    <p></p>
+      Execution is stopped whenever a "halt" instruction,
+      a "breakpoint",  or an  error is encountered.
+    <p></p>
+      The user can force the simulator to stop execution by pressing the
+      "Stop" button.
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#c">command c</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="step">&nbsp;</a><br />
+    <img src="P/step.png" /><h6>Step / Single Step</h6>
+    <p>
+      Execute a single instruction and then stop.
+      The instruction executed is the one pointed at by the PC.
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#s">command s</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="trace">&nbsp;</a><br />
+    <img src="P/trace.png" /><h6>Trace</h6>
+    <p>
+     Same as "c", but after each instruction is executed, the views are updated.
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#t">command t</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="term">&nbsp;</a><br />
+    <img src="P/term.png" /><h6>Terminal / Open terminal</h6>
+    <p>
+      Open the terminal window.
+    <p></p>
+      Characters sent to the TPB are printed on the terminal window, and
+      key strokes on the terminal window are transferred to the TKB.
+    <p></p>
+      <i>Note:</i> the terminal window is automatically opened when needed by the machine. It can also be opened and re-opened manually by the user
+      using this button.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="traps">&nbsp;</a><br />
+    <img src="P/traps.png" /><h6>Traps / Machine traps</h6>
+    <p>
+      Enable/disable machine traps.
+      When disabled, machine traps cause the simulator to stop execution and to print a message.
+    </p>
+    <p>
+      <i>Caution:</i> this option should be kept disabled unless the user is familiar with machine traps.
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#T">command T</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="help">&nbsp;</a><br />
+    <img src="P/help.png" /><h6>Help</h6>
+    <p>
+      Show this help.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="register">&nbsp;</a><br />
+    <table>
+      <tr>
+	<td align="center" bgcolor="grey">r0</td>
+        <td align="center" bgcolor="grey">r1</td>
+	<td align="center" bgcolor="grey">r2</td>
+        <td align="center" bgcolor="grey">r3</td>
+	<td align="center" bgcolor="grey">r4</td>
+        <td align="center" bgcolor="grey">r5</td>
+	<td align="center" bgcolor="grey">sp</td>
+        <td align="center" bgcolor="grey">pc</td>
+      </tr>
+    </table>
+    <p>
+       Change the value of a register.
+    </p>
+    <p>
+       Enter any <a href="#expr">legal expression</a> in the input field.
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#r">command r</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="single_view">&nbsp;</a><br />
+    <table><tr><td align="center" bgcolor="grey">New Single</td></tr></table>
+    <p>
+       The Main Memory window contains 16. memory peep lines.
+       Each line has a pointer and can be in one of the following three modes:
+    </p>
+    <table>
+       <tr><td width="10%">&nbsp;</td><td><i>Empty    </i></td><td>line not used.</td></tr>
+       <tr><td width="10%">&nbsp;</td><td><i>Single   </i></td><td>line displays single memory location in various formats.</td></tr>
+       <tr><td width="10%">&nbsp;</td><td><i>Multiple </i></td><td>line displays consecutive memory locations in octal.</td></tr>
+    </table>
+    <p>
+     <i>Empty</i> lines are empty.
+    </p><p>
+     <i>Single</i> lines have the following format:
+    <pre>
+       [address]: octal decimal low-byte high-byte low-char high-char
+    </pre>
+     <i>Multiple</i> lines have the following format:
+    <pre>
+       address  M[address]  M[adderss+2]  M[address+4]  M[address+6]
+    </pre>
+     When only "Line number" is specified, the command empties the specified line.
+    </p><p>
+     When a value is specified in the "Address" field, the command loads the pointer specified by "Line number" with "Address",
+     and sets this line mode to "single".
+    </p><p>
+     "Line number" must be any <a href="#expr">legal expression</a>
+     whose value is between 0 and 17 (15.).
+     "Address" must be any <a href="#expr">legal expression</a> whose value is
+     
+     a legal memory address (between 0 and 077776).
+    </p>
+    <p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#a">command a</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="multiple_view">&nbsp;</a><br />
+    <table><tr><td align="center" bgcolor="grey">New Multiple</td></tr></table>
+    <p>
+       The Main Memory window contains 16. memory peep lines.
+       Each line has a pointer and can be in one of the following three modes:
+    </p>
+    <table>
+       <tr><td width="10%">&nbsp;</td><td><i>Empty    </i></td><td>line not used.</td></tr>
+       <tr><td width="10%">&nbsp;</td><td><i>Single   </i></td><td>line displays single memory location in various formats.</td></tr>
+       <tr><td width="10%">&nbsp;</td><td><i>Multiple </i></td><td>line displays consecutive memory locations in octal.</td></tr>
+    </table>
+    <p>
+      <i>Empty </i>lines are empty.
+    </p><p>
+      <i>Single</i> lines have the following format:
+    <pre>
+       [address]: octal decimal low-byte high-byte low-char high-char
+    </pre>
+      <i>Multiple </i>lines have the following format:
+    <pre>
+       address  M[address]  M[adderss+2]  M[address+4]  M[address+6]
+    </pre>
+    </p><p>
+      When only the "Line number" and "From Address" fields are specified, the command loads the
+      pointer specified by "Line number" with "From Address",
+      and sets this line mode to "multiple".
+    </p><p>
+      When the "To Address" field is specified too, the command loads the pointer specified by "Line number" with "From Address", and sets this
+      line mode to "multiple".  It then continues loading consecutive lines
+      (wrapping from 15. back to 0),  until "To Address"
+      is reached,  or until all 16. lines are newly loaded.
+    </p><p>
+      "Line number" must be any <a href="#expr">legal expression</a>
+      whose value is between 0 and 17 (15.).
+      "From Address" and "To Address" must be any <a href="#expr">legal expression</a>
+      whose values is a legal memory address (between 0 and 077776).
+    </p><p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#a">command a</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="clear_views">&nbsp;</a><br />
+    <table><tr><td align="center" bgcolor="grey">Clear All Views</td></tr></table>
+    <p>
+      Empty all 16. lines of the Main Memory view.
+    </p><p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#a">command a</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="modify">&nbsp;</a><br />
+    <table><tr><td align="center" bgcolor="grey">Modify Memory</td></tr></table>
+    <p>
+      Set ("modify") the contents of a memory location.  Assign the "Word value"
+      to memory location "Start Address".
+    </p><p>
+      If a list (of no more that eight) "Word values" (separated by commas) is specified,
+      those values are assigned to consecutive words in the memory,
+      starting at "Start Address".
+    </p><p>
+      "Start Address" should be any <a href="#expr">legal expression</a>
+      whose values is a legal memory word address (even number between 0 and 077776).
+      All "Word values" can be any <a href="#expr">legal expression</a>.
+    </p><p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#m">command m</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="new_breakpoint">&nbsp;</a><br />
+    <table><tr><td align="center" bgcolor="grey">New BreakPoint</td></tr></table>
+    <p>
+      Set a new breakpoint.
+    </p><p>
+      Execution of instructions will stop and the machine will halt before
+      executing the instruction at the breakpoint "Address".
+    </p><p>
+      "Address" should be any <a href="#expr">legal expression</a>
+      whose values is a legal memory address (between 0 and 077776).
+    </p><p>
+      The "Commands list" is a list of  simulator commands  to be executed
+      when reaching the breakpoint. If the user does not want to stop at the breakpoint, the last command on that list should be "c", or "p", or "t".
+      (This option doesn't work when using the GUI.)
+    </p><p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#b">command b</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="delete_breakpoint">&nbsp;</a><br />
+    <table><tr><td align="center" bgcolor="grey">Delete BreakPoint</td></tr></table>
+    <p>
+      Delete a specific breakpoint.
+    </p>
+    <p>
+      Enter any <a href="#expr">legal expression</a> whose value is the address of
+      a (previously set) breakpoint to be deleted.
+    </p><p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#d">command d</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="delete_all_breakpoints">&nbsp;</a><br />
+    <table><tr><td align="center" bgcolor="grey">Delete All</td></tr></table>
+    <p>
+      Delete all breakpoints.
+    </p><p>
+      <i>Note:</i> this option uses the <a href="sim11-hlp.html#d">command d</a>.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <a name="expr">&nbsp;</a><br />
+    <h6>Expression</h6>
+      Expressions are built from <i>primitive expressions</i>, <i>operations</i>,
+      and <i>brackets</i>.
+    <p>
+      <i>Primitive expressions</i> are:
+	<ul>
+	  <li>An <i>octal number</i> (constructed from digits 0 to 7).</li>
+	  <li>A <i>decimal number</i> (constructed from digits 0 to 9 followed by a decimal period).</li>
+	  <li>A <i>symbol</i> defined in the symbol table.
+	</ul>
+    </p><p>
+      <i>Operations</i> (in descending order of precedence) are:
+	<ul>
+	  <li><tt>!</tt>&nbsp;&nbsp;&nbsp;unary not</li>
+	  <li><tt>-</tt>&nbsp;&nbsp;&nbsp;unary minus</li>
+	  <li><tt>+</tt>&nbsp;&nbsp;&nbsp;unary plus</li>
+	  <li><tt>*</tt>&nbsp;&nbsp;&nbsp;multiplication</li>
+	  <li><tt>/</tt>&nbsp;&nbsp;&nbsp;division</li>
+	  <li><tt>%</tt>&nbsp;&nbsp;&nbsp;modulo/reminder</li>
+	  <li><tt>+</tt>&nbsp;&nbsp;&nbsp;addition</li>
+	  <li><tt>-</tt>&nbsp;&nbsp;&nbsp;subtraction</li>
+	  <li><tt>\&lt;</tt>&nbsp;&nbsp;left shift</li>
+	  <li><tt>\&gt;</tt>&nbsp;&nbsp;right shift</li>
+	  <li><tt>&amp;</tt>&nbsp;&nbsp;&nbsp;bitwise and</li>
+	  <li><tt>|</tt>&nbsp;&nbsp;&nbsp;bitwise or</li>
+	  <li><tt>^</tt>&nbsp;&nbsp;&nbsp;bitwise xor</li>
+	</ul>
+    </p><p>
+      <i>Brackets</i> are "<tt>[</tt>" and "<tt>]</tt>", which must be legally
+      paired and nested, and function as parentheses.
+    </p>
+    <p><a href="#top">Back to top</a></p><hr />
+
+    <img src="P/PDP1.png" width="50" height="50"/>
+  </body>
+</html>
