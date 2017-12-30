@@ -1,0 +1,721 @@
+Technion Computer Science Department -- PDP/11 X-Assembler Version (5.5) AA.
+
+
+	S O U R C E    F I L E    :    D:\workspace\Atom\234118\ex3\system.s11
+	======================================================================
+
+000000                             1     . = torg + 1000
+001000   010706                    2     main:	mov	pc,	sp
+001002   005001                    3               clr r1
+001004   005002                    4               clr r2
+001006   116701 007766             5               movb nCols, r1          ;checks whether nCols or nRows equal to zero
+001012   116702 007763             6               movb nRows, r2
+001016   005701                    7               tst r1
+001020   001433                    8               beq jumpFinish
+001022   005702                    9               tst r2
+001024   001431                   10               beq jumpFinish
+                                  11     
+001026   004567 002012            12               jsr r5, isLegal
+001032   011002                   13               .word OrigImg
+001034   011001                   14               .word nRows
+001036   011000                   15               .word nCols
+001040   000000                   16               .word 0
+                                  17     
+001042   010701                   18               mov pc, r1
+001044   162701 000004            19               sub #4, r1   ; cmp output address
+                                  20     
+001050   005711                   21               tst (r1)
+001052   001416                   22               beq jumpFinish
+                                  23     
+001054   012746 011002            24               mov #OrigImg, -(sp)
+001060   012746 011042            25               mov #EncImg, -(sp)
+001064   012746 011001            26               mov #nRows, -(sp)
+001070   012746 011000            27               mov #nCols, -(sp)
+001074   012746 011102            28               mov #Hash, -(sp)
+001100   004767 000010            29               jsr pc, system
+                                  30     
+001104   062706 000012            31               add #12, sp
+                                  32     
+001110   000167 002210            33     jumpFinish: jmp finish
+                                  34     
+001114                            35     system: ; 2(sp)=Hash , 4(sp)=nCols , 6(sp)=nRows , 10(sp)=EncImg , 12(sp)=OrigImg , Key=OUTPUT
+                                  36     
+001114   010146                   37               mov r1, -(sp)
+                                  38     
+001116   005746                   39               tst -(sp)
+001120   016646 000014            40               mov 14(sp), -(sp)     ; 14(sp)=OrigImg
+001124   016646 000014            41               mov 14(sp), -(sp)     ; 14(sp)=EncImg
+001130   016646 000014            42               mov 14(sp), -(sp)     ; 14(sp)=nRows
+001134   016646 000014            43               mov 14(sp), -(sp)     ; 14(sp)=nCols
+001140   004767 002000            44               jsr pc, cmpImg
+001144   062706 000010            45               add #10, sp
+                                  46     
+001150   005726                   47               tst (sp)+
+001152   001460                   48               beq sysFinish         ; checks if EncImg == OrigImg
+                                  49     
+001154   012701 011122            50     sysFind:  mov #Key, r1
+001160   004767 002064            51               jsr pc, nextKey
+                                  52     
+001164   016646 000014            53               mov 14(sp), -(sp)     ; 14(sp)=OrigImg
+001170   016646 000012            54               mov 12(sp), -(sp)     ; 12(sp)=nRows
+001174   016646 000012            55               mov 12(sp), -(sp)     ; 12(sp)=nCols
+001200   016646 000012            56               mov 12(sp), -(sp)     ; 12(sp)=Hash
+001204   012746 011122            57               mov #Key, -(sp)
+001210   004767 000104            58               jsr pc, encode
+001214   062706 000012            59               add #12, sp
+                                  60     
+001220   005746                   61               tst -(sp)
+001222   016646 000014            62               mov 14(sp), -(sp)     ; 14(sp)=OrigImg
+001226   016646 000014            63               mov 14(sp), -(sp)     ; 14(sp)=EncImg
+001232   016646 000014            64               mov 14(sp), -(sp)     ; 14(sp)=nRows
+001236   016646 000014            65               mov 14(sp), -(sp)     ; 14(sp)=nCols
+001242   004767 001676            66               jsr pc, cmpImg
+001246   062706 000010            67               add #10, sp
+                                  68     
+001252   005726                   69               tst (sp)+
+001254   001417                   70               beq sysFinish         ; checks if EncImg == OrigImg
+                                  71     
+001256   016646 000014            72               mov 14(sp), -(sp)     ; 14(sp)=OrigImg
+001262   016646 000012            73               mov 12(sp), -(sp)     ; 12(sp)=nRows
+001266   016646 000012            74               mov 12(sp), -(sp)     ; 12(sp)=nCols
+001272   016646 000012            75               mov 12(sp), -(sp)     ; 12(sp)=Hash
+001276   012746 011122            76               mov #Key, -(sp)
+001302   004767 000656            77               jsr pc, decode
+001306   062706 000012            78               add #12, sp
+                                  79     
+001312   000720                   80               br sysFind
+                                  81     
+                                  82     
+001314   012601                   83     sysFinish:    mov (sp)+, r1
+001316   000207                   84                   rts pc
+                                  85     
+                                  86     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                  87     
+001320                            88     encode:   ; 2(sp) - key, 4(sp) - hash, 6(sp) - nCols, 10(sp) - nRows, 12(sp) - OrigImg
+                                  89               ; reveives the stack in the following way:
+                                  90               ; push OrigImg
+                                  91               ; push nRows
+                                  92               ; push nCols
+                                  93               ; push Hash
+                                  94               ; push Key
+001320   016646 000012            95               mov 12(sp), -(sp)         ;store the OrigImg pointer, so we can update it we the work on the current block
+001324   010546                   96               mov r5, -(sp)
+001326   005005                   97               clr r5
+001330                            98     EncodeBlock:
+001330   016646 000002            99               mov 2(sp), -(sp)
+001334   016646 000010           100               mov 10(sp), -(sp)
+001340   016646 000016           101               mov 16(sp), -(sp)
+001344   004767 000224           102               jsr pc, EncryptBlock
+001350   005726                  103               tst (sp)+
+001352   005726                  104               tst (sp)+
+001354   005726                  105               tst (sp)+
+001356   016646 000002           106               mov 2(sp), -(sp)
+001362   016646 000012           107               mov 12(sp), -(sp)
+001366   016646 000016           108               mov 16(sp), -(sp)
+001372   004767 000360           109               jsr pc, MixBlock
+001376   005726                  110               tst (sp)+
+001400   005726                  111               tst (sp)+
+001402   005726                  112               tst (sp)+
+001404   016646 000002           113               mov 2(sp), -(sp)
+001410   016646 000010           114               mov 10(sp), -(sp)
+001414   016646 000016           115               mov 16(sp), -(sp)
+001420   005005                  116               clr r5
+001422   004767 000146           117               jsr pc, EncryptBlock
+001426   005726                  118               tst (sp)+
+001430   005726                  119               tst (sp)+
+001432   005726                  120               tst (sp)+
+                                 121     
+001434   010446                  122               mov r4, -(sp)       ;use r4 as a temp var for mul
+001436   010346                  123               mov r3, -(sp)       ;use r3 as a temp var for mul
+001440   005003                  124               clr r3
+001442   117604 000016           125               movb @16(sp), r4    ;copy nCols
+001446   016603 000016           126               mov 16(sp), r3      ;copy nRows
+001452   005203                  127               inc r3
+001454   111303                  128               movb (r3), r3
+001456   070304                  129               mul r4, r3          ;we know the image size is less then 2^16
+001460   010304                  130               mov r3, r4
+001462   066604 000022           131               add 22(sp), r4      ; 22(sp) is the place where encode got OriImg address
+001466   160504                  132               sub r5, r4          ;if we exceeded the blocks - should be negative
+001470   005704                  133               tst r4
+001472   100433                  134               bmi EEndEncodeR
+001474   005704                  135               tst r4
+001476   001023                  136               bne EDownMoveBlock
+001500                           137     EMoveBlockRight:
+001500   160305                  138               sub r3, r5          ;initialize the OrigImg pointer to the first line in the column.
+001502   010566 000006           139               mov r5, 6(sp)       ;basically we substract the multiplication of nColsxnRows from the current
+                                 140                                   ;place in the image's pointer (stored in 2(sp))
+001506   062766 000004 000006    141               add #4, 6(sp)       ;move to next block from right
+001514   016604 000006           142               mov 6(sp), r4
+001520   005003                  143               clr r3
+001522   117603 000016           144               movb @16(sp), r3    ;copy nCols value to r3
+001526   160304                  145               sub r3, r4
+001530   016603 000022           146               mov 22(sp), r3
+001534   160403                  147               sub r4, r3
+001536   001411                  148               beq EEndEncodeR     ;if the result=0, we exceeded nCols
+                                 149     
+001540   012603                  150               mov (sp)+, r3
+001542   012604                  151               mov (sp)+, r4
+001544   000671                  152               br EncodeBlock
+001546                           153     EDownMoveBlock:
+001546   012603                  154               mov (sp)+, r3
+001550   012604                  155               mov (sp)+, r4
+001552   010566 000002           156               mov r5, 2(sp)
+001556   000664                  157               br EncodeBlock
+001560   000402                  158               br DendEncode
+001562                           159     EEndEncodeR:
+001562   012603                  160               mov (sp)+, r3
+001564   012604                  161               mov (sp)+, r4
+001566                           162     DendEncode:
+001566   012605                  163               mov (sp)+, r5
+001570   005726                  164               tst (sp)+           ;pull the r5 we pushed earlier to return r1's value from the encription
+001572   000207                  165               rts pc
+                                 166               ;call to mix
+                                 167               ;call to encryption
+                                 168               ;loop with check bounderies
+                                 169     
+001574                           170     EncryptBlock:  ; 14(sp) - nCols address, 16(sp) - Key address, 20(sp) - OImg address
+                                 171                    ; Order of passing parameters:
+                                 172                    ; push Image address
+                                 173                    ; push Key address
+                                 174                    ; push nCols address
+001574   010146                  175               mov r1, -(sp)
+001576   010246                  176               mov r2, -(sp)
+001600   010446                  177               mov r4, -(sp)
+001602   010546                  178               mov r5, -(sp)
+001604   010346                  179               mov r3, -(sp)
+001606   005004                  180               clr r4
+001610   016601 000020           181               mov 20(sp), r1
+001614   016602 000016           182               mov 16(sp), r2
+001620   017604 000014           183               mov @14(sp), r4
+001624   042704 177400           184               bic #177400, r4                 ;gets lower byte of r4, which is nCols
+001630   012705 000004           185               mov #4, r5                      ;set counters for sob
+001634   012703 000004           186               mov #4, r3
+001640                           187     LineEncrypt:
+001640   010246                  188               mov r2,-(sp)                    ;store current node and put it's value in r2
+001642   011202                  189               mov (r2),r2
+001644   010146                  190               mov r1,-(sp)                    ;because r1 is byte, we store r1's address and move into it the value for xoring
+001646   005001                  191               clr r1
+001650   117601 000000           192               movb @0(sp), r1
+001654   074201                  193               xor r2,r1
+001656   110176 000000           194               movb r1, @0(sp)
+001662   012601                  195               mov (sp)+, r1
+001664   005201                  196               inc r1
+001666   012602                  197               mov (sp)+, r2
+001670   062702 000002           198               add #2, r2                       ;moves to next node in key
+001674   027227 000000 177777    199               cmp @(r2), #177777
+001702   001402                  200               beq EGetNewKey                    ;cycles again the key if nil
+001704   005712                  201               tst(r2)
+001706   001004                  202               bne EKeyIsOk
+001710                           203     EGetNewKey:
+001710   016602 000016           204               mov 16(sp), r2
+001714   077527                  205               sob r5, LineEncrypt
+001716   000402                  206               br ENextLine
+001720   011202                  207     EKeyIsOk: mov (r2), r2                    ;get address of new key node
+001722   077532                  208               sob r5, LineEncrypt
+001724   162701 000004           209     ENextLine: sub #4, r1                       ;mov r1 to the beginning of line
+001730   060401                  210               add r4, r1                      ;moves r4 one line forward
+001732   012705 000004           211               mov #4, r5
+001736   077340                  212               sob r3, LineEncrypt
+001740   012603                  213               mov (sp)+, r3
+001742   012605                  214               mov (sp)+, r5
+001744   010105                  215               mov r1, r5
+001746   012604                  216               mov (sp)+, r4
+001750   012602                  217               mov (sp)+, r2
+001752   012601                  218               mov (sp)+, r1
+001754   000207                  219               rts pc
+                                 220     
+001756                           221     MixBlock: ; 14(sp) - nCols address, 16(sp) - Hash address, 20(sp) - OImg address
+                                 222                ; Order of passing parameters:
+                                 223                ; push Image address
+                                 224                ; push Hash address
+                                 225                ; push nCols address
+001756   010146                  226               mov r1, -(sp)
+001760   010246                  227               mov r2, -(sp)
+001762   010446                  228               mov r4, -(sp)
+001764   010546                  229               mov r5, -(sp)
+001766   010346                  230               mov r3, -(sp)
+001770   005004                  231               clr r4
+001772   016601 000020           232               mov 20(sp), r1
+001776   016602 000016           233               mov 16(sp), r2
+002002   017604 000014           234               mov @14(sp), r4
+002006   042704 177400           235               bic #177400, r4
+002012   012705 000004           236               mov #4, r5
+002016   012703 000004           237               mov #4, r3
+002022   012746 000004           238               mov #4, -(sp)       ; counter for cyclic move
+                                 239     
+002026                           240     MixLine:
+002026   010246                  241               mov r2, -(sp)
+002030   010146                  242               mov r1, -(sp)       ; stores r1-index to img, r2-index to hash
+                                 243     
+002032   111101                  244               movb (r1), r1       ;get the value in image to use as index in Hash
+002034   060102                  245               add r1, r2          ;advance r2 to desired index
+002036   012601                  246               mov (sp)+, r1
+002040   111202                  247               movb (r2), r2
+002042   110221                  248               movb r2, (r1)+
+002044   012602                  249               mov (sp)+, r2
+002046   077311                  250               sob r3, MixLine
+002050   162701 000004           251               sub #4, r1          ; initialize r1 to points to the first element in line
+                                 252     
+002054   010516                  253               mov r5,(sp)
+002056   162716 000004           254               sub #4, (sp)        ;checks if cyclic move needs to be taken and how many moves should be done
+002062   005416                  255               neg (sp)
+002064   005716                  256               tst (sp)
+002066   001423                  257               beq MNextLine
+002070   010546                  258               mov r5, -(sp)       ;use r5 as counter for cyclic moves
+002072   010346                  259               mov r3, -(sp)       ;use r3 as a temp register
+002074                           260     ERepCyclicOp:
+002074   005003                  261               clr r3
+002076   012705 000003           262               mov #3, r5
+002102   062701 000003           263               add #3, r1          ;r1 should point to the last element in line
+002106   111103                  264               movb (r1), r3
+                                 265     
+002110   005301                  266     ECyclicOpLine:   dec r1              ;move the value of (r1) to the next byte
+002112   111161 000001           267               movb (r1), 1(r1)
+002116   005305                  268               dec r5
+002120   001373                  269               bne ECyclicOpLine          ;if finished the cyclic move, continue
+002122   110311                  270               movb r3, (r1)
+002124   005366 000004           271               dec 4(sp)
+002130   001361                  272               bne ERepCyclicOp        ;if finished cyclic operation on the line, continue
+002132   012603                  273               mov (sp)+, r3
+002134   012605                  274               mov (sp)+, r5
+002136                           275     MNextLine:
+002136   060401                  276               add r4, r1
+002140   012703 000004           277               mov #4, r3
+002144   077550                  278               sob r5, MixLine
+002146   005726                  279               tst (sp)+
+002150   012603                  280               mov (sp)+, r3
+002152   012605                  281               mov (sp)+, r5
+002154   012604                  282               mov (sp)+, r4
+002156   012602                  283               mov (sp)+, r2
+002160   012601                  284               mov (sp)+, r1
+002162   000207                  285               rts pc
+                                 286     
+                                 287     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 288     
+002164                           289     decode:   ; 2(sp) - key, 4(sp) - hash, 6(sp) - nCols, 10(sp) - nRows, 12(sp) - OrigImg
+                                 290               ; reveives the stack in the following way:
+                                 291               ; push OrigImg
+                                 292               ; push nRows
+                                 293               ; push nCols
+                                 294               ; push Hash
+                                 295               ; push Key
+002164   016646 000012           296               mov 12(sp), -(sp)         ;store the EncImg pointer, so we can update it we the work on the current block
+002170   010546                  297               mov r5, -(sp)
+002172   005005                  298               clr r5
+002174   016646 000002           299     DecodeBlock: mov 2(sp), -(sp)
+002200   016646 000010           300               mov 10(sp), -(sp)
+002204   016646 000016           301               mov 16(sp), -(sp)
+002210   004767 000224           302               jsr pc, DecryptBlock
+002214   005726                  303               tst (sp)+
+002216   005726                  304               tst (sp)+
+002220   005726                  305               tst (sp)+
+002222   016646 000002           306               mov 2(sp), -(sp)
+002226   016646 000012           307               mov 12(sp), -(sp)
+002232   016646 000016           308               mov 16(sp), -(sp)
+002236   004767 000360           309               jsr pc, UnmixBlock
+002242   005726                  310               tst (sp)+
+002244   005726                  311               tst (sp)+
+002246   005726                  312               tst (sp)+
+002250   016646 000002           313               mov 2(sp), -(sp)
+002254   016646 000010           314               mov 10(sp), -(sp)
+002260   016646 000016           315               mov 16(sp), -(sp)
+002264   005005                  316               clr r5
+002266   004767 000146           317               jsr pc, DecryptBlock
+002272   005726                  318               tst (sp)+
+002274   005726                  319               tst (sp)+
+002276   005726                  320               tst (sp)+
+                                 321     
+002300   010446                  322               mov r4, -(sp)       ;use r4 as a temp var for mul
+002302   010346                  323               mov r3, -(sp)       ;use r3 as a temp var for mul
+002304   005003                  324               clr r3
+002306   117604 000016           325               movb @16(sp), r4    ;copy nCols
+002312   016603 000016           326               mov 16(sp), r3      ;copy nRows
+002316   005203                  327               inc r3
+002320   111303                  328               movb (r3), r3
+002322   070304                  329               mul r4, r3          ;we know the image size is less then 2^16
+002324   010304                  330               mov r3, r4
+002326   066604 000022           331               add 22(sp), r4      ; 22(sp) is the place where encode got OriImg address
+002332   160504                  332               sub r5, r4          ;if we exceeded the blocks - should be negative
+002334   005704                  333               tst r4
+002336   100433                  334               bmi DEndDecodeRight
+002340   005704                  335               tst r4
+002342   001023                  336               bne CompBlockDown
+002344                           337     DMoveBlockRight:
+002344   160305                  338               sub r3, r5          ;initialize the OrigImg pointer to the first line in the column.
+002346   010566 000006           339               mov r5, 6(sp)       ;basically we substract the multiplication of nColsxnRows from the current
+                                 340                                   ;place in the image's pointer (stored in 2(sp))
+002352   062766 000004 000006    341               add #4, 6(sp)       ;move to next block from right
+002360   016604 000006           342               mov 6(sp), r4
+002364   005003                  343               clr r3
+002366   117603 000016           344               movb @16(sp), r3    ;copy nCols value to r3
+002372   160304                  345               sub r3, r4
+002374   016603 000022           346               mov 22(sp), r3
+002400   160403                  347               sub r4, r3
+002402   001411                  348               beq DEndDecodeRight     ;if the result=0, we exceeded nCols
+                                 349     
+002404   012603                  350               mov (sp)+, r3
+002406   012604                  351               mov (sp)+, r4
+002410   000671                  352               br DecodeBlock
+002412                           353     CompBlockDown:
+002412   012603                  354               mov (sp)+, r3
+002414   012604                  355               mov (sp)+, r4
+002416   010566 000002           356               mov r5, 2(sp)
+002422   000664                  357               br DecodeBlock
+002424   000402                  358               br FinishDecode
+002426                           359     DEndDecodeRight:
+002426   012603                  360               mov (sp)+, r3
+002430   012604                  361               mov (sp)+, r4
+002432                           362     FinishDecode:
+002432   012605                  363               mov (sp)+, r5
+002434   005726                  364               tst (sp)+           ;pull the r5 we pushed earlier to return r1's value from the encription
+002436   000207                  365               rts pc
+                                 366               ;call to mix
+                                 367               ;call to encryption
+                                 368               ;loop with check bounderies
+                                 369     
+002440                           370     DecryptBlock:  ; 14(sp) - nCols address, 16(sp) - Key address, 20(sp) - OImg address
+                                 371                    ; Order of passing parameters:
+                                 372                    ; push Image address
+                                 373                    ; push Key address
+                                 374                    ; push nCols address
+002440   010146                  375               mov r1, -(sp)
+002442   010246                  376               mov r2, -(sp)
+002444   010446                  377               mov r4, -(sp)
+002446   010546                  378               mov r5, -(sp)
+002450   010346                  379               mov r3, -(sp)
+002452   005004                  380               clr r4
+002454   016601 000020           381               mov 20(sp), r1
+002460   016602 000016           382               mov 16(sp), r2
+002464   017604 000014           383               mov @14(sp), r4
+002470   042704 177400           384               bic #177400, r4                 ;gets lower byte of r4, which is nCols
+002474   012705 000004           385               mov #4, r5                      ;set counters for sob
+002500   012703 000004           386               mov #4, r3
+002504                           387     DecryptLine:
+002504   010246                  388               mov r2,-(sp)                    ;store current node and put it's value in r2
+002506   011202                  389               mov (r2),r2
+002510   010146                  390               mov r1,-(sp)                    ;because r1 is byte, we store r1's address and move into it the value for xoring
+002512   005001                  391               clr r1
+002514   117601 000000           392               movb @0(sp), r1
+002520   074201                  393               xor r2,r1
+002522   110176 000000           394               movb r1, @0(sp)
+002526   012601                  395               mov (sp)+, r1
+002530   005201                  396               inc r1
+002532   012602                  397               mov (sp)+, r2
+002534   062702 000002           398               add #2, r2                       ;moves to next node in key
+002540   027227 000000 177777    399               cmp @(r2), #177777
+002546   001402                  400               beq DGetNewKey                    ;cycles again the key if nil
+002550   005712                  401               tst(r2)
+002552   001004                  402               bne DKeyLenIsOk
+002554                           403     DGetNewKey:
+002554   016602 000016           404               mov 16(sp), r2
+002560   077527                  405               sob r5, DecryptLine
+002562   000402                  406               br DNextLine
+002564   011202                  407     DKeyLenIsOk: mov (r2), r2                    ;get address of new key node
+002566   077532                  408               sob r5, DecryptLine
+002570   162701 000004           409     DNextLine: sub #4, r1                       ;mov r1 to the beginning of line
+002574   060401                  410               add r4, r1                      ;moves r4 one line forward
+002576   012705 000004           411               mov #4, r5
+002602   077340                  412               sob r3, DecryptLine
+002604   012603                  413               mov (sp)+, r3
+002606   012605                  414               mov (sp)+, r5
+002610   010105                  415               mov r1, r5
+002612   012604                  416               mov (sp)+, r4
+002614   012602                  417               mov (sp)+, r2
+002616   012601                  418               mov (sp)+, r1
+002620   000207                  419               rts pc
+                                 420     
+002622                           421     UnmixBlock: ; 14(sp) - nCols address, 16(sp) - Hash address, 20(sp) - OImg address
+                                 422                ; Order of passing parameters:
+                                 423                ; push Image address
+                                 424                ; push Hash address
+                                 425                ; push nCols address
+002622   010146                  426               mov r1, -(sp)
+002624   010246                  427               mov r2, -(sp)
+002626   010446                  428               mov r4, -(sp)
+002630   010546                  429               mov r5, -(sp)
+002632   010346                  430               mov r3, -(sp)
+002634   005004                  431               clr r4
+002636   016601 000020           432               mov 20(sp), r1
+002642   016602 000016           433               mov 16(sp), r2
+002646   017604 000014           434               mov @14(sp), r4
+002652   042704 177400           435               bic #177400, r4
+002656   012705 000004           436               mov #4, r5
+002662   012703 000004           437               mov #4, r3
+002666   012746 000004           438               mov #4, -(sp)       ; counter for cyclic move
+                                 439     
+002672                           440     LineUnmix:
+002672   010246                  441               mov r2, -(sp)
+002674   010146                  442               mov r1, -(sp)       ; stores r1-index to img, r2-index to hash
+002676   010346                  443               mov r3, -(sp)       ;temp iterator for Hash array
+002700   005003                  444               clr r3
+002702   111101                  445               movb (r1), r1
+002704                           446     DCalculateIndex:                     ;goes over Hash values until it matches (r1)
+002704   120122                  447               cmpb r1, (r2)+
+002706   001402                  448               beq IndexFound
+002710   005203                  449               inc r3
+002712   000774                  450               br DCalculateIndex
+002714                           451     IndexFound:
+002714   110361 000002           452               movb r3, 2(r1)
+002720   005266 000002           453               inc 2(sp)
+002724   012603                  454               mov (sp)+, r3
+002726   012601                  455               mov (sp)+, r1
+002730   012602                  456               mov (sp)+, r2
+002732   077321                  457               sob r3, LineUnmix
+002734   162701 000004           458               sub #4, r1          ; initialize r1 to points to the first element in line
+                                 459     
+002740   010516                  460               mov r5,(sp)         ;r5 = 4 in the beginning
+002742   162716 000004           461               sub #4, (sp)        ;checks if cyclic move needs to be taken and how many moves should be done
+002746   005416                  462               neg (sp)
+002750   005716                  463               tst (sp)
+002752   001421                  464               beq DNextRow
+002754   010546                  465               mov r5, -(sp)       ;use r5 as counter for cyclic moves
+002756   010346                  466               mov r3, -(sp)       ;use r3 as a temp register
+002760                           467     DCyclicRep:
+002760   005003                  468               clr r3
+002762   012705 000003           469               mov #3, r5
+002766   111103                  470               movb (r1), r3
+                                 471     
+002770   005201                  472     DCyclicLineOp:   inc r1              ;move the value of (r1) to the next byte
+002772   111161 177777           473               movb (r1), -1(r1)
+002776   005305                  474               dec r5
+003000   001373                  475               bne DCyclicLineOp          ;if finished the cyclic move, continue
+003002   110311                  476               movb r3, (r1)
+003004   005366 000004           477               dec 4(sp)
+003010   001363                  478               bne DCyclicRep        ;if finished cyclic operation on the line, continue
+003012   012603                  479               mov (sp)+, r3
+003014   012605                  480               mov (sp)+, r5
+003016                           481     DNextRow:
+003016   060401                  482               add r4, r1
+003020   012703 000004           483               mov #4, r3
+003024   077556                  484               sob r5, LineUnmix
+003026   005726                  485               tst (sp)+
+003030   012603                  486               mov (sp)+, r3
+003032   012605                  487               mov (sp)+, r5
+003034   012604                  488               mov (sp)+, r4
+003036   012602                  489               mov (sp)+, r2
+003040   012601                  490               mov (sp)+, r1
+003042   000207                  491               rts pc
+                                 492     
+                                 493     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 494     
+003044                           495     isLegal: ; 0(r5)=Img , 2(r5)=nRows , 4(r5)=nCols , 6(r5)=OUTPUT
+                                 496     
+003044   010146                  497                   mov r1, -(sp)
+003046   010246                  498                   mov r2, -(sp)
+003050   010346                  499                   mov r3, -(sp)
+                                 500     
+003052   011501                  501                   mov (r5), r1       ; (r5)=Img
+                                 502     
+003054   121127 000017           503     lglByte:      cmpb (r1), #17
+003060   101013                  504                   bhi lglFalse          ; if [0 <= (r1) <= 17]
+                                 505     
+003062   117502 000002           506                   movb @2(r5), r2       ; @2(r5)=nRows
+003066   117503 000004           507                   movb @4(r5), r3       ; @4(r5)=nCols
+003072   070302                  508                   mul r2, r3         ; r3=nCols*nRows
+                                 509     
+003074   061503                  510                   add (r5), r3      ; (r5)=Img1
+003076   005303                  511                   dec r3
+003100   020301                  512                   cmp r3, r1
+003102   003406                  513                   ble lglTrue       ; if r1 reached the end of Img
+                                 514     
+003104   005201                  515                   inc r1
+003106   000762                  516                   br lglByte
+                                 517     
+003110   012765 000000 000006    518     lglFalse:     mov #0, 6(r5)
+003116   000404                  519                   br lglFinish
+                                 520     
+003120   012765 000001 000006    521     lglTrue:      mov #1, 6(r5)
+003126   000400                  522                   br lglFinish
+                                 523     
+003130   012603                  524     lglFinish:    mov (sp)+, r3
+003132   012602                  525                   mov (sp)+, r2
+003134   012601                  526                   mov (sp)+, r1
+003136   062705 000010           527                   add #10, r5
+003142   000205                  528                   rts r5
+                                 529     
+                                 530     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 531     
+003144                           532     cmpImg: ; 2(sp)=OUTPUT , 4(sp)=nCols , 6(sp)=nRows , 10(sp)=Img2, 12(sp)=Img1
+                                 533     
+003144   010146                  534                   mov r1, -(sp)
+003146   010246                  535                   mov r2, -(sp)
+003150   010346                  536                   mov r3, -(sp)
+                                 537     
+003152   016601 000016           538                   mov 16(sp), r1       ; Img1
+003156   016602 000014           539                   mov 14(sp), r2        ; Img2
+                                 540     
+003162   121112                  541     cmpByte:      cmpb (r1), (r2)
+003164   001015                  542                   bne cmpFalse            ; if [(r1) == (r2)]
+                                 543     
+003166   005003                  544                   clr r3
+003170   016603 000010           545                   mov 10(sp), r3
+003174   070366 000012           546                   mul 12(sp), r3         ; r3=nCols*nRows
+                                 547     
+003200   066603 000016           548                   add 16(sp), r3      ; 16(sp)=Img1
+003204   005303                  549                   dec r3
+003206   020301                  550                   cmp r3, r1
+003210   003407                  551                   ble cmpTrue         ; if r1 reached the end of Img
+                                 552     
+003212   005201                  553                   inc r1
+003214   005202                  554                   inc r2
+003216   000761                  555                   br cmpByte
+                                 556     
+003220   012766 000001 000020    557     cmpFalse:     mov #1, 20(sp)
+003226   000404                  558                   br cmpFinish
+                                 559     
+003230   012766 000000 000020    560     cmpTrue:      mov #0, 20(sp)
+003236   000400                  561                   br cmpFinish
+                                 562     
+003240   012603                  563     cmpFinish:    mov (sp)+, r3
+003242   012602                  564                   mov (sp)+, r2
+003244   012601                  565                   mov (sp)+, r1
+003246   000207                  566                   rts pc
+                                 567     
+                                 568     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 569     
+003250                           570     nextKey: ; r1=key
+003250   010146                  571                   mov r1, -(sp)           ; saves list's head
+                                 572     
+003252   021127 000017           573     nkCheckKey:   cmp (r1), #17           ; checks if "17-17-17-..."
+003256   002406                  574                   blt nkStart
+003260   062701 000002           575                   add #2, r1
+003264   005711                  576                   tst (r1)
+003266   001415                  577                   beq nkFinish
+003270   011101                  578                   mov (r1), r1
+003272   000767                  579                   br nkCheckKey
+                                 580     
+003274   012601                  581     nkStart:      mov (sp)+, r1           ; restors list's head
+003276   021127 000017           582     nkIncNode:    cmp (r1), #17
+003302   002002                  583                   bge nkNextNode
+                                 584     
+003304   005211                  585                   inc (r1)
+003306   000405                  586                   br nkFinish
+                                 587     
+003310   005011                  588     nkNextNode:   clr (r1)
+003312   062701 000002           589                   add #2, r1
+003316   011101                  590                   mov (r1), r1
+003320   000766                  591                   br nkIncNode
+                                 592     
+003322   000207                  593     nkFinish:     rts pc
+                                 594     
+                                 595     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 596     
+003324   000000                  597     finish: halt
+003326                           598     .= torg + 11000
+011000      010                  599     nCols: 		.byte 10
+011001      004                  600     nRows: 	.byte 4
+011002      001    002    001    601     OrigImg: 	.byte	 1,  2,  1,  2, 0,   1,   2,    3
+            002    000    001            
+            002    003                   
+011012      003    004    003    602     				.byte	 3,  4,  3,  4, 4,   5,   6,    7
+            004    004    005            
+            006    007                   
+011022      005    006    005    603     				.byte	 5,  6,  5,  6, 10, 11, 12, 13
+            006    010    011            
+            012    013                   
+011032      007    000    007    604     				.byte	 7,  0,  7,  0, 14, 15, 16, 17
+            000    014    015            
+            016    017                   
+011042      003    004    003    605     EncImg: 	.byte	 3,  4,  3,  4,  2,  3,   4,    5
+            004    002    003            
+            004    005                   
+011052      007    004    007    606     				.byte	 7,  4,  7,  4,  10,   7,   6,    11
+            004    010    007            
+            006    011                   
+011062      007    010    007    607     				.byte	 7,  10,  7,  10, 14, 15, 12, 13
+            010    014    015            
+            012    013                   
+011072      003    010    003    608     				.byte	 3,  10,  3,  10, 16, 1, 0, 17
+            010    016    001            
+            000    017                   
+011102      002    003    004    609     Hash:		.byte 	2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
+            005    006    007            
+            010    011    012            
+            013    014    015            
+            016    017    000            
+            001                          
+011122                           610     .even
+011122                           611     Key:
+011122   177777 011126           612     node1:		.word -1, node2
+011126   177777 011132           613     node2:		.word -1, node3
+011132   177777 000000           614     node3:		.word -1, 0
+011136                           615     ExpKey:
+011136   000000 011142           616     _node1:		.word  0, _node2
+011142   000001 011146           617     _node2:		.word  1, _node3
+011146   000002 000000           618     _node3:		.word  2, 0
+
+
+	S Y M B O L   T A B L E
+	=======================
+
+SYMBOL    VALUE   TYPE
+------    -----   ----
+main      001000  text     
+nCols     011000  text     
+nRows     011001  text     
+jumpFini  001110  text     
+isLegal   003044  text     
+OrigImg   011002  text     
+EncImg    011042  text     
+Hash      011102  text     
+system    001114  text     
+finish    003324  text     
+cmpImg    003144  text     
+sysFinis  001314  text     
+sysFind   001154  text     
+Key       011122  text     
+nextKey   003250  text     
+encode    001320  text     
+decode    002164  text     
+EncodeBl  001330  text     
+EncryptB  001574  text     
+MixBlock  001756  text     
+EEndEnco  001562  text     
+EDownMov  001546  text     
+EMoveBlo  001500  text     
+DendEnco  001566  text     
+LineEncr  001640  text     
+EGetNewK  001710  text     
+EKeyIsOk  001720  text     
+ENextLin  001724  text     
+MixLine   002026  text     
+MNextLin  002136  text     
+ERepCycl  002074  text     
+ECyclicO  002110  text     
+DecodeBl  002174  text     
+DecryptB  002440  text     
+UnmixBlo  002622  text     
+DEndDeco  002426  text     
+CompBloc  002412  text     
+DMoveBlo  002344  text     
+FinishDe  002432  text     
+DecryptL  002504  text     
+DGetNewK  002554  text     
+DKeyLenI  002564  text     
+DNextLin  002570  text     
+LineUnmi  002672  text     
+DCalcula  002704  text     
+IndexFou  002714  text     
+DNextRow  003016  text     
+DCyclicR  002760  text     
+DCyclicL  002770  text     
+lglByte   003054  text     
+lglFalse  003110  text     
+lglTrue   003120  text     
+lglFinis  003130  text     
+cmpByte   003162  text     
+cmpFalse  003220  text     
+cmpTrue   003230  text     
+cmpFinis  003240  text     
+nkCheckK  003252  text     
+nkStart   003274  text     
+nkFinish  003322  text     
+nkIncNod  003276  text     
+nkNextNo  003310  text     
+node1     011122  text     
+node2     011126  text     
+node3     011132  text     
+ExpKey    011136  text     
+_node1    011136  text     
+_node2    011142  text     
+_node3    011146  text     
