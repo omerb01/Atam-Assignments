@@ -22,17 +22,17 @@ decode:   ; 2(sp) - key, 4(sp) - hash, 6(sp) - nCols, 10(sp) - nRows, 12(sp) - O
           mov 12(sp), -(sp)         ;store the EncImg pointer, so we can update it we the work on the current block
           mov r5, -(sp)
           clr r5
-decBlock: mov 2(sp), -(sp)
+DecodeBlock: mov 2(sp), -(sp)
           mov 10(sp), -(sp)
           mov 16(sp), -(sp)
-          jsr pc, decryptBlock
+          jsr pc, DecryptBlock
           tst (sp)+
           tst (sp)+
           tst (sp)+
           mov 2(sp), -(sp)
           mov 12(sp), -(sp)
           mov 16(sp), -(sp)
-          jsr pc, unmixBlock
+          jsr pc, UnmixBlock
           tst (sp)+
           tst (sp)+
           tst (sp)+
@@ -40,7 +40,7 @@ decBlock: mov 2(sp), -(sp)
           mov 10(sp), -(sp)
           mov 16(sp), -(sp)
           clr r5
-          jsr pc, decryptBlock
+          jsr pc, DecryptBlock
           tst (sp)+
           tst (sp)+
           tst (sp)+
@@ -57,10 +57,10 @@ decBlock: mov 2(sp), -(sp)
           add 22(sp), r4      ; 22(sp) is the place where encode got OriImg address
           sub r5, r4          ;if we exceeded the blocks - should be negative
           tst r4
-          bmi endEncodeR
+          bmi DEndDecodeRight
           tst r4
-          bne downMoveBlock
-moveBlockRight:
+          bne DMoveBlockDown
+DMoveBlockRight:
           sub r3, r5          ;initialize the OrigImg pointer to the first line in the column.
           mov r5, 6(sp)       ;basically we substract the multiplication of nColsxnRows from the current
                               ;place in the image's pointer (stored in 2(sp))
@@ -71,18 +71,18 @@ moveBlockRight:
           sub r3, r4
           mov 22(sp), r3
           sub r4, r3
-          beq endEncodeR     ;if the result=0, we exceeded nCols
+          beq DEndDecodeRight     ;if the result=0, we exceeded nCols
 
           mov (sp)+, r3
           mov (sp)+, r4
-          br decBlock
-downMoveBlock:
+          br DecodeBlock
+DMoveBlockDown:
           mov (sp)+, r3
           mov (sp)+, r4
           mov r5, 2(sp)
-          br decBlock
+          br DecodeBlock
           br DendEncode
-endEncodeR:
+DEndDecodeRight:
           mov (sp)+, r3
           mov (sp)+, r4
 DendEncode:
@@ -93,7 +93,7 @@ DendEncode:
           ;call to encryption
           ;loop with check bounderies
 
-decryptBlock:  ; 14(sp) - nCols address, 16(sp) - Key address, 20(sp) - OImg address
+DecryptBlock:  ; 14(sp) - nCols address, 16(sp) - Key address, 20(sp) - OImg address
                ; Order of passing parameters:
                ; push Image address
                ; push Key address
@@ -110,7 +110,7 @@ decryptBlock:  ; 14(sp) - nCols address, 16(sp) - Key address, 20(sp) - OImg add
           bic #177400, r4                 ;gets lower byte of r4, which is nCols
           mov #4, r5                      ;set counters for sob
           mov #4, r3
-decryptLine:
+DecryptLine:
           mov r2,-(sp)                    ;store current node and put it's value in r2
           mov (r2),r2
           mov r1,-(sp)                    ;because r1 is byte, we store r1's address and move into it the value for xoring
@@ -123,19 +123,19 @@ decryptLine:
           mov (sp)+, r2
           add #2, r2                       ;moves to next node in key
           cmp @(r2), #177777
-          beq getNewKey                    ;cycles again the key if nil
+          beq DGetNewKey                    ;cycles again the key if nil
           tst(r2)
-          bne keyLenOK
-getNewKey:
+          bne DKeyLenIsOk
+DGetNewKey:
           mov 16(sp), r2
-          sob r5, decryptLine
-          br nextLine
-keyLenOK: mov (r2), r2                    ;get address of new key node
-          sob r5, decryptLine
-nextLine: sub #4, r1                       ;mov r1 to the beginning of line
+          sob r5, DecryptLine
+          br DNextLine
+DKeyLenIsOk: mov (r2), r2                    ;get address of new key node
+          sob r5, DecryptLine
+DNextLine: sub #4, r1                       ;mov r1 to the beginning of line
           add r4, r1                      ;moves r4 one line forward
           mov #4, r5
-          sob r3, decryptLine
+          sob r3, DecryptLine
           mov (sp)+, r3
           mov (sp)+, r5
           mov r1, r5
@@ -144,7 +144,7 @@ nextLine: sub #4, r1                       ;mov r1 to the beginning of line
           mov (sp)+, r1
           rts pc
 
-unmixBlock: ; 14(sp) - nCols address, 16(sp) - Hash address, 20(sp) - OImg address
+UnmixBlock: ; 14(sp) - nCols address, 16(sp) - Hash address, 20(sp) - OImg address
            ; Order of passing parameters:
            ; push Image address
            ; push Hash address
@@ -163,51 +163,51 @@ unmixBlock: ; 14(sp) - nCols address, 16(sp) - Hash address, 20(sp) - OImg addre
           mov #4, r3
           mov #4, -(sp)       ; counter for cyclic move
 
-unmixLine:
+LineUnmix:
           mov r2, -(sp)
           mov r1, -(sp)       ; stores r1-index to img, r2-index to hash
           mov r3, -(sp)       ;temp iterator for Hash array
           clr r3
           movb (r1), r1
-calcIndex:                     ;goes over Hash values until it matches (r1)
+DCalculateIndex:                     ;goes over Hash values until it matches (r1)
           cmpb r1, (r2)+
-          beq indexFound
+          beq IndexFound
           inc r3
-          br calcIndex
-indexFound:
+          br DCalculateIndex
+IndexFound:
           movb r3, 2(r1)
           inc 2(sp)
           mov (sp)+, r3
           mov (sp)+, r1
           mov (sp)+, r2
-          sob r3, unmixLine
+          sob r3, LineUnmix
           sub #4, r1          ; initialize r1 to points to the first element in line
 
           mov r5,(sp)         ;r5 = 4 in the beginning
           sub #4, (sp)        ;checks if cyclic move needs to be taken and how many moves should be done
           neg (sp)
           tst (sp)
-          beq nextRow
+          beq DNextRow
           mov r5, -(sp)       ;use r5 as counter for cyclic moves
           mov r3, -(sp)       ;use r3 as a temp register
-cycleRep:
+DCyclicRep:
           clr r3
           mov #3, r5
           movb (r1), r3
 
-cycleL:   inc r1              ;move the value of (r1) to the next byte
+DCyclicLineOp:   inc r1              ;move the value of (r1) to the next byte
           movb (r1), -1(r1)
           dec r5
-          bne cycleL          ;if finished the cyclic move, continue
+          bne DCyclicLineOp          ;if finished the cyclic move, continue
           movb r3, (r1)
           dec 4(sp)
-          bne cycleRep        ;if finished cyclic operation on the line, continue
+          bne DCyclicRep        ;if finished cyclic operation on the line, continue
           mov (sp)+, r3
           mov (sp)+, r5
-nextRow:
+DNextRow:
           add r4, r1
           mov #4, r3
-          sob r5, unmixLine
+          sob r5, LineUnmix
           tst (sp)+
           mov (sp)+, r3
           mov (sp)+, r5

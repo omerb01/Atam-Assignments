@@ -1,0 +1,40 @@
+. = torg + 1000
+main:	mov	pc,	sp
+          tst	-(sp)
+          mov #EncImg, -(sp)
+          mov #nRows, -(sp)
+          mov #nCols, -(sp)
+          mov #Hash, -(sp)
+          mov #Key, -(sp)
+          jsr pc, decode
+          tst (sp)+
+          tst (sp)+
+          tst (sp)+
+          tst (sp)+
+          tst (sp)+
+
+
+
+
+  finish: halt
+  .= torg + 11000
+  nCols: 		.byte 10
+  nRows: 	.byte 4
+  OrigImg: 	.byte	 1,  2,  1,  2, 0,   1,   2,    3
+  				.byte	 3,  4,  3,  4, 4,   5,   6,    7
+  				.byte	 5,  6,  5,  6, 10, 11, 12, 13
+  				.byte	 7,  0,  7,  0, 14, 15, 16, 17
+  EncImg: 	.byte	 3,  4,  3,  4,  2,  3,   4,    5
+  				.byte	 7,  4,  7,  4,  10,   7,   6,    11
+  				.byte	 7,  10,  7,  10, 14, 15, 12, 13
+  				.byte	 3,  10,  3,  10, 16, 1, 0, 17
+  Hash:		.byte 	2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
+  .even
+  Key:
+  node1:		.word -1, node2
+  node2:		.word -1, node3
+  node3:		.word -1, 0
+  ExpKey:
+  _node1:		.word  0, _node2
+  _node2:		.word  1, _node3
+  _node3:		.word  2, 0
