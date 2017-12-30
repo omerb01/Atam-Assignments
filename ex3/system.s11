@@ -478,7 +478,7 @@ DCyclicLineOp:   inc r1              ;move the value of (r1) to the next byte
           mov (sp)+, r3
           mov (sp)+, r5
 DNextRow:
-          add r4, r1
+          ;add r4, r1
           mov #4, r3
           sob r5, LineUnmix
           tst (sp)+
