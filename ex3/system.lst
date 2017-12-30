@@ -36,7 +36,7 @@ Technion Computer Science Department -- PDP/11 X-Assembler Version (5.5) AA.
                                   30     
 001106   062706 000012            31               add #12, sp
                                   32     
-001112   000167 002210            33     jumpFinish: jmp finish
+001112   000167 002216            33     jumpFinish: jmp finish
                                   34     
 001116                            35     system: ; 2(sp)=Hash , 4(sp)=nCols , 6(sp)=nRows , 10(sp)=EncImg , 12(sp)=OrigImg , Key=OUTPUT
                                   36     
@@ -45,8 +45,8 @@ Technion Computer Science Department -- PDP/11 X-Assembler Version (5.5) AA.
 001120   005746                   39               tst -(sp)
 001122   016646 000016            40               mov 16(sp), -(sp)     ; 16(sp)=OrigImg
 001126   016646 000016            41               mov 16(sp), -(sp)     ; 16(sp)=EncImg
-001132   116646 000016            42               movb 16(sp), -(sp)     ; 16(sp)=nRows
-001136   116646 000016            43               movb 16(sp), -(sp)     ; 16(sp)=nCols
+001132   016646 000016            42               mov 16(sp), -(sp)     ; 16(sp)=nRows
+001136   016646 000016            43               mov 16(sp), -(sp)     ; 16(sp)=nCols
 001142   004767 002000            44               jsr pc, cmpImg
 001146   062706 000010            45               add #10, sp
                                   46     
@@ -54,7 +54,7 @@ Technion Computer Science Department -- PDP/11 X-Assembler Version (5.5) AA.
 001154   001460                   48               beq sysFinish         ; checks if EncImg == OrigImg
                                   49     
 001156   012701 011122            50     sysFind:  mov #Key, r1
-001162   004767 002064            51               jsr pc, nextKey
+001162   004767 002072            51               jsr pc, nextKey
                                   52     
 001166   016646 000014            53               mov 14(sp), -(sp)     ; 14(sp)=OrigImg
 001172   016646 000012            54               mov 12(sp), -(sp)     ; 12(sp)=nRows
@@ -67,8 +67,8 @@ Technion Computer Science Department -- PDP/11 X-Assembler Version (5.5) AA.
 001222   005746                   61               tst -(sp)
 001224   016646 000016            62               mov 16(sp), -(sp)     ; 16(sp)=OrigImg
 001230   016646 000016            63               mov 16(sp), -(sp)     ; 16(sp)=EncImg
-001234   116646 000016            64               movb 16(sp), -(sp)     ; 16(sp)=nRows
-001240   116646 000016            65               movb 16(sp), -(sp)     ; 16(sp)=nCols
+001234   016646 000016            64               mov 16(sp), -(sp)     ; 16(sp)=nRows
+001240   016646 000016            65               mov 16(sp), -(sp)     ; 16(sp)=nCols
 001244   004767 001676            66               jsr pc, cmpImg
 001250   062706 000010            67               add #10, sp
                                   68     
@@ -541,109 +541,112 @@ Technion Computer Science Department -- PDP/11 X-Assembler Version (5.5) AA.
 003146   010146                  535                   mov r1, -(sp)
 003150   010246                  536                   mov r2, -(sp)
 003152   010346                  537                   mov r3, -(sp)
-                                 538     
-003154   016601 000016           539                   mov 16(sp), r1       ; Img1
-003160   016602 000014           540                   mov 14(sp), r2        ; Img2
-                                 541     
-003164   121112                  542     cmpByte:      cmpb (r1), (r2)
-003166   001015                  543                   bne cmpFalse            ; if [(r1) == (r2)]
-                                 544     
-003170   005003                  545                   clr r3
-003172   016603 000010           546                   mov 10(sp), r3
-003176   070366 000012           547                   mul 12(sp), r3         ; r3=nCols*nRows
-                                 548     
-003202   066603 000016           549                   add 16(sp), r3      ; 16(sp)=Img1
-003206   005303                  550                   dec r3
-003210   020301                  551                   cmp r3, r1
-003212   003407                  552                   ble cmpTrue         ; if r1 reached the end of Img
-                                 553     
-003214   005201                  554                   inc r1
-003216   005202                  555                   inc r2
-003220   000761                  556                   br cmpByte
-                                 557     
-003222   012766 000001 000020    558     cmpFalse:     mov #1, 20(sp)
-003230   000404                  559                   br cmpFinish
-                                 560     
-003232   012766 000000 000020    561     cmpTrue:      mov #0, 20(sp)
-003240   000400                  562                   br cmpFinish
-                                 563     
-003242   012603                  564     cmpFinish:    mov (sp)+, r3
-003244   012602                  565                   mov (sp)+, r2
-003246   012601                  566                   mov (sp)+, r1
-003250   000207                  567                   rts pc
-                                 568     
-                                 569     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                 570     
-003252                           571     nextKey: ; r1=key
-003252   010146                  572                   mov r1, -(sp)           ; saves list's head
+003154   010446                  538                   mov r4, -(sp)
+                                 539     
+003156   016601 000020           540                   mov 20(sp), r1       ; Img1
+003162   016602 000016           541                   mov 16(sp), r2        ; Img2
+                                 542     
+003166   121112                  543     cmpByte:      cmpb (r1), (r2)
+003170   001016                  544                   bne cmpFalse            ; if [(r1) == (r2)]
+                                 545     
+003172   005003                  546                   clr r3
+003174   117603 000012           547                   movb @12(sp), r3
+003200   117604 000014           548                   movb @14(sp), r4
+003204   070304                  549                   mul r4, r3         ; r3=nCols*nRows
+                                 550     
+003206   066603 000020           551                   add 20(sp), r3      ; 20(sp)=Img1
+003212   005303                  552                   dec r3
+003214   020301                  553                   cmp r3, r1
+003216   003407                  554                   ble cmpTrue         ; if r1 reached the end of Img
+                                 555     
+003220   005201                  556                   inc r1
+003222   005202                  557                   inc r2
+003224   000760                  558                   br cmpByte
+                                 559     
+003226   012766 000001 000022    560     cmpFalse:     mov #1, 22(sp)
+003234   000404                  561                   br cmpFinish
+                                 562     
+003236   012766 000000 000022    563     cmpTrue:      mov #0, 22(sp)
+003244   000400                  564                   br cmpFinish
+                                 565     
+003246   012604                  566     cmpFinish:    mov (sp)+, r4
+003250   012603                  567                   mov (sp)+, r3
+003252   012602                  568                   mov (sp)+, r2
+003254   012601                  569                   mov (sp)+, r1
+003256   000207                  570                   rts pc
+                                 571     
+                                 572     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                  573     
-003254   021127 000017           574     nkCheckKey:   cmp (r1), #17           ; checks if "17-17-17-..."
-003260   002406                  575                   blt nkStart
-003262   062701 000002           576                   add #2, r1
-003266   005711                  577                   tst (r1)
-003270   001415                  578                   beq nkFinish
-003272   011101                  579                   mov (r1), r1
-003274   000767                  580                   br nkCheckKey
-                                 581     
-003276   012601                  582     nkStart:      mov (sp)+, r1           ; restors list's head
-003300   021127 000017           583     nkIncNode:    cmp (r1), #17
-003304   002002                  584                   bge nkNextNode
-                                 585     
-003306   005211                  586                   inc (r1)
-003310   000405                  587                   br nkFinish
+003260                           574     nextKey: ; r1=key
+003260   010146                  575                   mov r1, -(sp)           ; saves list's head
+                                 576     
+003262   021127 000017           577     nkCheckKey:   cmp (r1), #17           ; checks if "17-17-17-..."
+003266   002406                  578                   blt nkStart
+003270   062701 000002           579                   add #2, r1
+003274   005711                  580                   tst (r1)
+003276   001415                  581                   beq nkFinish
+003300   011101                  582                   mov (r1), r1
+003302   000767                  583                   br nkCheckKey
+                                 584     
+003304   012601                  585     nkStart:      mov (sp)+, r1           ; restors list's head
+003306   021127 000017           586     nkIncNode:    cmp (r1), #17
+003312   002002                  587                   bge nkNextNode
                                  588     
-003312   005011                  589     nkNextNode:   clr (r1)
-003314   062701 000002           590                   add #2, r1
-003320   011101                  591                   mov (r1), r1
-003322   000766                  592                   br nkIncNode
-                                 593     
-003324   000207                  594     nkFinish:     rts pc
-                                 595     
-                                 596     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                 597     
-003326   000000                  598     finish: halt
-003330                           599     .= torg + 11000
-011000      010                  600     nCols: 		.byte 10
-011001      004                  601     nRows: 	.byte 4
-011002      001    002    001    602     OrigImg: 	.byte	 1,  2,  1,  2, 0,   1,   2,    3
+003314   005211                  589                   inc (r1)
+003316   000405                  590                   br nkFinish
+                                 591     
+003320   005011                  592     nkNextNode:   clr (r1)
+003322   062701 000002           593                   add #2, r1
+003326   011101                  594                   mov (r1), r1
+003330   000766                  595                   br nkIncNode
+                                 596     
+003332   000207                  597     nkFinish:     rts pc
+                                 598     
+                                 599     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 600     
+003334   000000                  601     finish: halt
+003336                           602     .= torg + 11000
+011000      010                  603     nCols: 		.byte 10
+011001      004                  604     nRows: 	.byte 4
+011002      001    002    001    605     OrigImg: 	.byte	 1,  2,  1,  2, 0,   1,   2,    3
             002    000    001            
             002    003                   
-011012      003    004    003    603     				.byte	 3,  4,  3,  4, 4,   5,   6,    7
+011012      003    004    003    606     				.byte	 3,  4,  3,  4, 4,   5,   6,    7
             004    004    005            
             006    007                   
-011022      005    006    005    604     				.byte	 5,  6,  5,  6, 10, 11, 12, 13
+011022      005    006    005    607     				.byte	 5,  6,  5,  6, 10, 11, 12, 13
             006    010    011            
             012    013                   
-011032      007    000    007    605     				.byte	 7,  0,  7,  0, 14, 15, 16, 17
+011032      007    000    007    608     				.byte	 7,  0,  7,  0, 14, 15, 16, 17
             000    014    015            
             016    017                   
-011042      003    004    003    606     EncImg: 	.byte	 3,  4,  3,  4,  2,  3,   4,    5
+011042      003    004    003    609     EncImg: 	.byte	 3,  4,  3,  4,  2,  3,   4,    5
             004    002    003            
             004    005                   
-011052      007    004    007    607     				.byte	 7,  4,  7,  4,  10,   7,   6,    11
+011052      007    004    007    610     				.byte	 7,  4,  7,  4,  10,   7,   6,    11
             004    010    007            
             006    011                   
-011062      007    010    007    608     				.byte	 7,  10,  7,  10, 14, 15, 12, 13
+011062      007    010    007    611     				.byte	 7,  10,  7,  10, 14, 15, 12, 13
             010    014    015            
             012    013                   
-011072      003    010    003    609     				.byte	 3,  10,  3,  10, 16, 1, 0, 17
+011072      003    010    003    612     				.byte	 3,  10,  3,  10, 16, 1, 0, 17
             010    016    001            
             000    017                   
-011102      002    003    004    610     Hash:		.byte 	2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
+011102      002    003    004    613     Hash:		.byte 	2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
             005    006    007            
             010    011    012            
             013    014    015            
             016    017    000            
             001                          
-011122                           611     .even
-011122                           612     Key:
-011122   177777 011126           613     node1:		.word -1, node2
-011126   177777 011132           614     node2:		.word -1, node3
-011132   177777 000000           615     node3:		.word -1, 0
-011136                           616     ExpKey:
-011136   000000 011142           617     _node1:		.word  0, _node2
-011142   000001 011146           618     _node2:		.word  1, _node3
-011146   000002 000000           619     _node3:		.word  2, 0
+011122                           614     .even
+011122                           615     Key:
+011122   177777 011126           616     node1:		.word -1, node2
+011126   177777 011132           617     node2:		.word -1, node3
+011132   177777 000000           618     node3:		.word -1, 0
+011136                           619     ExpKey:
+011136   000000 011142           620     _node1:		.word  0, _node2
+011142   000001 011146           621     _node2:		.word  1, _node3
+011146   000002 000000           622     _node3:		.word  2, 0
 
 
 	S Y M B O L   T A B L E
@@ -660,12 +663,12 @@ OrigImg   011002  text
 EncImg    011042  text     
 Hash      011102  text     
 system    001116  text     
-finish    003326  text     
+finish    003334  text     
 cmpImg    003146  text     
 sysFinis  001316  text     
 sysFind   001156  text     
 Key       011122  text     
-nextKey   003252  text     
+nextKey   003260  text     
 encode    001322  text     
 decode    002166  text     
 EncodeBl  001332  text     
@@ -704,15 +707,15 @@ lglByte   003056  text
 lglFalse  003112  text     
 lglTrue   003122  text     
 lglFinis  003132  text     
-cmpByte   003164  text     
-cmpFalse  003222  text     
-cmpTrue   003232  text     
-cmpFinis  003242  text     
-nkCheckK  003254  text     
-nkStart   003276  text     
-nkFinish  003324  text     
-nkIncNod  003300  text     
-nkNextNo  003312  text     
+cmpByte   003166  text     
+cmpFalse  003226  text     
+cmpTrue   003236  text     
+cmpFinis  003246  text     
+nkCheckK  003262  text     
+nkStart   003304  text     
+nkFinish  003332  text     
+nkIncNod  003306  text     
+nkNextNo  003320  text     
 node1     011122  text     
 node2     011126  text     
 node3     011132  text     

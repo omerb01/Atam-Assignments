@@ -4,8 +4,8 @@ main:   mov #main, sp
         tst -(sp)
         mov #OrigImg, -(sp)
         mov #EncImg, -(sp)
-        movb nRows, -(sp)
-        movb nCols, -(sp)
+        mov #nRows, -(sp)
+        mov #nCols, -(sp)
 
         jsr pc, cmpImg
 
@@ -17,18 +17,20 @@ cmpImg: ; 2(sp)=OUTPUT , 4(sp)=nCols , 6(sp)=nRows , 10(sp)=Img2, 12(sp)=Img1
               mov r1, -(sp)
               mov r2, -(sp)
               mov r3, -(sp)
+              mov r4, -(sp)
 
-              mov 16(sp), r1       ; Img1
-              mov 14(sp), r2        ; Img2
+              mov 20(sp), r1       ; Img1
+              mov 16(sp), r2        ; Img2
 
 cmpByte:      cmpb (r1), (r2)
               bne cmpFalse            ; if [(r1) == (r2)]
 
               clr r3
-              mov 10(sp), r3
-              mul 12(sp), r3         ; r3=nCols*nRows
+              movb @12(sp), r3
+              movb @14(sp), r4
+              mul r4, r3         ; r3=nCols*nRows
 
-              add 16(sp), r3      ; 16(sp)=Img1
+              add 20(sp), r3      ; 20(sp)=Img1
               dec r3
               cmp r3, r1
               ble cmpTrue         ; if r1 reached the end of Img
@@ -37,13 +39,14 @@ cmpByte:      cmpb (r1), (r2)
               inc r2
               br cmpByte
 
-cmpFalse:     mov #1, 20(sp)
+cmpFalse:     mov #1, 22(sp)
               br cmpFinish
 
-cmpTrue:      mov #0, 20(sp)
+cmpTrue:      mov #0, 22(sp)
               br cmpFinish
 
-cmpFinish:    mov (sp)+, r3
+cmpFinish:    mov (sp)+, r4
+              mov (sp)+, r3
               mov (sp)+, r2
               mov (sp)+, r1
               rts pc
