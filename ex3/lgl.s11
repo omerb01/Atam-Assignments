@@ -1,52 +1,48 @@
 . = torg + 1000
 main:   mov #main, sp
 
-        tst -(sp)
-        mov #OrigImg, -(sp)
-        mov #EncImg, -(sp)
-        movb nRows, -(sp)
-        movb nCols, -(sp)
+        jsr r5, isLegal
+        .word OrigImg
+        .word nRows
+        .word nCols
+        .word 0
 
-        jsr pc, cmpImg
-
-        add #10, sp
         jmp finish
 
-cmpImg: ; 2(sp)=OUTPUT , 4(sp)=nCols , 6(sp)=nRows , 10(sp)=Img2, 12(sp)=Img1
+isLegal: ; 0(r5)=Img , 2(r5)=nRows , 4(r5)=nCols , 6(r5)=OUTPUT
 
               mov r1, -(sp)
               mov r2, -(sp)
               mov r3, -(sp)
 
-              mov 16(sp), r1       ; Img1
-              mov 14(sp), r2        ; Img2
+              mov (r5), r1       ; (r5)=Img
 
-cmpByte:      cmpb (r1), (r2)
-              bne cmpFalse            ; if [(r1) == (r2)]
+lglByte:      cmpb (r1), #17
+              bhi lglFalse          ; if [0 <= (r1) <= 17]
 
-              clr r3
-              mov 10(sp), r3
-              mul 12(sp), r3         ; r3=nCols*nRows
+              movb @2(r5), r2       ; @2(r5)=nRows
+              movb @4(r5), r3       ; @4(r5)=nCols
+              mul r2, r3         ; r3=nCols*nRows
 
-              add 16(sp), r3      ; 16(sp)=Img1
+              add (r5), r3      ; (r5)=Img1
               dec r3
               cmp r3, r1
-              ble cmpTrue         ; if r1 reached the end of Img
+              ble lglTrue       ; if r1 reached the end of Img
 
               inc r1
-              inc r2
-              br cmpByte
+              br lglByte
 
-cmpFalse:     mov #1, 20(sp)
-              br cmpFinish
+lglFalse:     mov #0, 6(r5)
+              br lglFinish
 
-cmpTrue:      mov #0, 20(sp)
-              br cmpFinish
+lglTrue:      mov #1, 6(r5)
+              br lglFinish
 
-cmpFinish:    mov (sp)+, r3
+lglFinish:    mov (sp)+, r3
               mov (sp)+, r2
               mov (sp)+, r1
-              rts pc
+              add #10, r5
+              rts r5
 
 finish: halt
 .= torg + 11000

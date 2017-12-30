@@ -1,0 +1,178 @@
+. = torg + 1000
+main:   mov #main, sp
+
+        mov #OrigImg, -(sp)
+        movb nRows, -(sp)
+        movb nCols, -(sp)
+        mov #Hash, -(sp)
+        mov #ExpKey, -(sp)
+
+        jsr pc, decode
+
+        tstb (sp)+
+        tstb (sp)+
+        tstb (sp)+
+        tstb (sp)+
+        tstb (sp)+
+
+        jmp finish
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+encryptBlock:  ; 10(sp) - nCols address, 12(sp) - Key address, 14(sp) - OImg address
+          mov r1, -(sp)
+          mov r2, -(sp)
+          mov r4, -(sp)
+          clr r4
+          mov 14(sp), r1
+          mov 12(sp), r2
+          mov @10(sp), r4
+          bic #177400, r4                 ;gets lower byte of r4, which is nCols
+          mov #4, r5                      ;set counters for sob
+          mov #4, r3
+encryptLine:
+          mov r2,-(sp)                    ;store current node and put it's value in r2
+          mov (r2),r2
+          mov r1,-(sp)                    ;because r1 is byte, we store r1's address and move into it the value for xoring
+          clr r1
+          movb @0(sp), r1
+          xor r2,r1
+          movb r1, @0(sp)
+          mov (sp)+, r1
+          inc r1
+          mov (sp)+, r2
+          add #2, r2                       ;moves to next node in key
+          tst (r2)
+          bne keyLenOK                    ;cycles again the key if nil
+          mov 12(sp), r2
+          sob r5, encryptLine
+          br nextLine
+keyLenOK: mov (r2), r2                    ;get address of new key node
+          sob r5, encryptLine
+nextLine: sub #4, r1                       ;mov r1 to the beginning of line
+          add r4, r1                      ;moves r4 one line forward
+          mov #4, r5
+          sob r3, encryptLine
+          mov (sp)+, r4
+          mov (sp)+, r2
+          mov (sp)+, r1
+          rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+decode: ;2(sp)=Key, 4(sp)=Hash, 6(sp)=nCols, 10(sp)=nRows, 12(sp)=Img
+
+        mov 6(sp), -(sp) ; nCols
+        mov 4(sp), -(sp) ; key
+        mov 16(sp), -(sp) ; Img
+        jsr pc, encryptBlock
+        tst (sp)+
+        tst (sp)+
+        tst (sp)+
+
+        mov 12(sp), -(sp) ; Img
+        movb 12(sp), -(sp) ; nRows
+        movb 12(sp), -(sp) ; nCols
+        mov 12(sp), -(sp) ; Hash
+        mov 12(sp), -(sp) ; Key
+        jsr pc, restore
+        tst (sp)+
+        tst (sp)+
+        tst (sp)+
+        tst (sp)+
+        tst (sp)+
+
+        mov 6(sp), -(sp) ; nCols
+        mov 4(sp), -(sp) ; key
+        mov 16(sp), -(sp) ; Img
+        jsr pc, encryptBlock
+        tst (sp)+
+        tst (sp)+
+        tst (sp)+
+
+        rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+restore: ;2(sp)=Key, 4(sp)=Hash, 6(sp)=nCols, 10(sp)=nRows, 12(sp)=Img
+            mov r1, -(sp)
+            mov r2, -(sp)
+
+            mov 16(sp), r1             ; Img
+            mov 10(sp), r2             ; Hash
+
+
+
+DecLine:		mov #-1, restoreTemp					;initialize Temp as counter in Hash
+DecByte:		inc restoreTemp							;find the corresponding index for value in
+																;Hash that is equal to value in Img
+						cmpb (r1), (r2)+			; --""--
+						bne DecByte						; --""--
+
+						mov #Hash, r2					;initialize r2 to pointer to Hash
+						movb restoreTemp, (r1)+			;decrypt byte
+						dec restoreInLineL
+						bne DecLine
+						sub #4,r1							;initialize r1 to the start of a block's line
+
+						mov restoreRowLoop, restoreLineCyclic		;Initialize cyclic counter
+						sub #4,restoreLineCyclic					; --""--
+						neg restoreLineCyclic						; --""--
+
+						tst restoreLineCyclic
+						beq DecDntCycl							;if Cyclic counter != 0 then don't cycle
+
+DecRepCycl:	mov #3, restoreInLineL							;initialize InLineL for cyclic move loop
+
+						clr restoreTemp										;stores the first byte in a block's line
+						movb (r1), restoreTemp							; --""--
+
+DecCyclMov:	inc r1
+						movb (r1),-1(r1)						;mov value in next byte to the previous byte
+						dec restoreInLineL									; --""--
+						bne DecCyclMov							;if finished cycle move for line, continue
+						movb restoreTemp, (r1)							;restore the value stored in Temp
+						sub #3, r1									;initialize r1
+						dec restoreLineCyclic
+						bne DecRepCycl							;repeat cyclic move in block
+
+DecDntCycl:	clr restoreTemp										;move to the next block's line
+						movb 12(sp), restoreTemp						; --""-- 12(sp) == nCols
+						add restoreTemp, r1								; --""--
+
+						mov #4, restoreInLineL							;initialize InLineL for DecLine loop
+						dec restoreRowLoop
+						bne DecLine
+
+            mov (sp)+, r2
+            mov (sp)+, r1
+
+          rts pc
+
+          restoreTemp: .word 0
+          restoreInLineL: .word 4
+          restoreLineCyclic: .word 	0
+          restoreRowLoop: .word 	4
+
+finish: halt
+.= torg + 11000
+nCols: 		.byte 10
+nRows: 	.byte 4
+OrigImg: 	.byte	 1,  2,  1,  2, 0,   1,   2,    3
+				.byte	 3,  4,  3,  4, 4,   5,   6,    7
+				.byte	 5,  6,  5,  6, 10, 11, 12, 13
+				.byte	 7,  0,  7,  0, 14, 15, 16, 17
+EncImg: 	.byte	 3,  4,  3,  4,  2,  3,   4,    5
+				.byte	 7,  4,  7,  4,  10,   7,   6,    11
+				.byte	 7,  10,  7,  10, 14, 15, 12, 13
+				.byte	 3,  10,  3,  10, 16, 1, 0, 17
+Hash:		.byte 	2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
+.even
+Key:
+node1:		.word -1, node2
+node2:		.word -1, node3
+node3:		.word -1, 0
+ExpKey:
+_node1:		.word  0, _node2
+_node2:		.word  1, _node3
+_node3:		.word  2, 0
