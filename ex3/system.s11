@@ -1,5 +1,5 @@
 . = torg + 1000
-main:	mov	pc,	sp
+main:	mov	#main,	sp
           clr r1
           clr r2
           movb nCols, r1          ;checks whether nCols or nRows equal to zero
@@ -23,8 +23,8 @@ main:	mov	pc,	sp
 
           mov #OrigImg, -(sp)
           mov #EncImg, -(sp)
-          mov #nRows, -(sp)
-          mov #nCols, -(sp)
+          movb nRows, -(sp)
+          movb nCols, -(sp)
           mov #Hash, -(sp)
           jsr pc, system
 
@@ -37,10 +37,10 @@ system: ; 2(sp)=Hash , 4(sp)=nCols , 6(sp)=nRows , 10(sp)=EncImg , 12(sp)=OrigIm
           mov r1, -(sp)
 
           tst -(sp)
-          mov 14(sp), -(sp)     ; 14(sp)=OrigImg
-          mov 14(sp), -(sp)     ; 14(sp)=EncImg
-          mov 14(sp), -(sp)     ; 14(sp)=nRows
-          mov 14(sp), -(sp)     ; 14(sp)=nCols
+          mov 16(sp), -(sp)     ; 16(sp)=OrigImg
+          mov 16(sp), -(sp)     ; 16(sp)=EncImg
+          mov 16(sp), -(sp)     ; 16(sp)=nRows
+          mov 16(sp), -(sp)     ; 16(sp)=nCols
           jsr pc, cmpImg
           add #10, sp
 
@@ -59,10 +59,10 @@ sysFind:  mov #Key, r1
           add #12, sp
 
           tst -(sp)
-          mov 14(sp), -(sp)     ; 14(sp)=OrigImg
-          mov 14(sp), -(sp)     ; 14(sp)=EncImg
-          mov 14(sp), -(sp)     ; 14(sp)=nRows
-          mov 14(sp), -(sp)     ; 14(sp)=nCols
+          mov 16(sp), -(sp)     ; 16(sp)=OrigImg
+          mov 16(sp), -(sp)     ; 16(sp)=EncImg
+          mov 16(sp), -(sp)     ; 16(sp)=nRows
+          mov 16(sp), -(sp)     ; 16(sp)=nCols
           jsr pc, cmpImg
           add #10, sp
 
