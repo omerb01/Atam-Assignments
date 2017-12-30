@@ -130,7 +130,7 @@ EncodeBlock:
           add 22(sp), r4      ; 22(sp) is the place where encode got OriImg address
           sub r5, r4          ;if we exceeded the blocks - should be negative
           tst r4
-          bmi EEndEncodeR
+          bmi EMoveBlockRight
           tst r4
           bne EDownMoveBlock
 EMoveBlockRight:
@@ -330,7 +330,7 @@ DecodeBlock: mov 2(sp), -(sp)
           add 22(sp), r4      ; 22(sp) is the place where encode got OriImg address
           sub r5, r4          ;if we exceeded the blocks - should be negative
           tst r4
-          bmi DEndDecodeRight
+          bmi DMoveBlockRight
           tst r4
           bne CompBlockDown
 DMoveBlockRight:
