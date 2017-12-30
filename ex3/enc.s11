@@ -181,7 +181,7 @@ MixLine:
           sub #4, (sp)        ;checks if cyclic move needs to be taken and how many moves should be done
           neg (sp)
           tst (sp)
-          beq ENextLine
+          beq MNextLine
           mov r5, -(sp)       ;use r5 as counter for cyclic moves
           mov r3, -(sp)       ;use r3 as a temp register
 ERepCyclicOp:
@@ -199,7 +199,7 @@ ECyclicOpLine:   dec r1              ;move the value of (r1) to the next byte
           bne ERepCyclicOp        ;if finished cyclic operation on the line, continue
           mov (sp)+, r3
           mov (sp)+, r5
-ENextLine:
+MNextLine:
           add r4, r1
           mov #4, r3
           sob r5, MixLine

@@ -59,7 +59,7 @@ DecodeBlock: mov 2(sp), -(sp)
           tst r4
           bmi DEndDecodeRight
           tst r4
-          bne DMoveBlockDown
+          bne CompBlockDown
 DMoveBlockRight:
           sub r3, r5          ;initialize the OrigImg pointer to the first line in the column.
           mov r5, 6(sp)       ;basically we substract the multiplication of nColsxnRows from the current
@@ -76,16 +76,16 @@ DMoveBlockRight:
           mov (sp)+, r3
           mov (sp)+, r4
           br DecodeBlock
-DMoveBlockDown:
+CompBlockDown:
           mov (sp)+, r3
           mov (sp)+, r4
           mov r5, 2(sp)
           br DecodeBlock
-          br DendEncode
+          br FinishDecode
 DEndDecodeRight:
           mov (sp)+, r3
           mov (sp)+, r4
-DendEncode:
+FinishDecode:
           mov (sp)+, r5
           tst (sp)+           ;pull the r5 we pushed earlier to return r1's value from the encription
           rts pc
@@ -215,6 +215,7 @@ DNextRow:
           mov (sp)+, r2
           mov (sp)+, r1
           rts pc
+
 
 
 halt
