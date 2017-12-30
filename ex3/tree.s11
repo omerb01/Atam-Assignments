@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 NIL = 0
 .=torg 	+ 1000
 main:	mov	pc,	sp
@@ -94,5 +92,3 @@ text5: .ascii<TEAM@>
 text6: .ascii<VE@>
 text7: .ascii<AE@>
 text8: .ascii<AM@>
-;comment
->>>>>>> d28cf729aeac37616853ba7078061e2ddee5cdb1

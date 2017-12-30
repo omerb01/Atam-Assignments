@@ -1,0 +1,231 @@
+. = torg + 1000
+main:	mov	pc,	sp
+      tst	-(sp)
+      mov #OrigImg, -(sp)
+      mov #nRows, -(sp)
+      mov #nCols, -(sp)
+      mov #Hash, -(sp)
+      mov #Key, -(sp)
+      jsr pc, encode
+      tst (sp)+
+      tst (sp)+
+      tst (sp)+
+      tst (sp)+
+      tst (sp)+
+encode:   ; 2(sp) - key, 4(sp) - hash, 6(sp) - nCols, 10(sp) - nRows, 12(sp) - OrigImg
+          ; reveives the stack in the following way:
+          ; push OrigImg
+          ; push nRows
+          ; push nCols
+          ; push Hash
+          ; push Key
+          mov 12(sp), -(sp)         ;store the OrigImg pointer, so we can update it we the work on the current block
+          mov r5, -(sp)
+          clr r5
+encBlock: mov 2(sp), -(sp)
+          mov 10(sp), -(sp)
+          mov 16(sp), -(sp)
+          jsr pc, encryptBlock
+          tst (sp)+
+          tst (sp)+
+          tst (sp)+
+          mov 2(sp), -(sp)
+          mov 12(sp), -(sp)
+          mov 16(sp), -(sp)
+          jsr pc, mixBlock
+          tst (sp)+
+          tst (sp)+
+          tst (sp)+
+          mov 2(sp), -(sp)
+          mov 10(sp), -(sp)
+          mov 16(sp), -(sp)
+          clr r5
+          jsr pc, encryptBlock
+          tst (sp)+
+          tst (sp)+
+          tst (sp)+
+
+          mov r4, -(sp)       ;use r4 as a temp var for mul
+          mov r3, -(sp)       ;use r3 as a temp var for mul
+          clr r3
+          movb @16(sp), r4    ;copy nCols
+          mov 16(sp), r3      ;copy nRows
+          inc r3
+          movb (r3), r3
+          mul r4, r3          ;we know the image size is less then 2^16
+          mov r3, r4
+          add 22(sp), r4      ; 22(sp) is the place where encode got OriImg address
+          sub r5, r4          ;if we exceeded the blocks - should be negative
+          tst r4
+          bmi endEncodeR
+          tst r4
+          bne downMoveBlock
+moveBlockRight:
+          sub r3, r5          ;initialize the OrigImg pointer to the first line in the column.
+          mov r5, 6(sp)       ;basically we substract the multiplication of nColsxnRows from the current
+                              ;place in the image's pointer (stored in 2(sp))
+          add #4, 6(sp)       ;move to next block from right
+          mov 6(sp), r4
+          clr r3
+          movb @16(sp), r3    ;copy nCols value to r3
+          sub r3, r4
+          mov 22(sp), r3
+          sub r4, r3
+          beq endEncodeR     ;if the result=0, we exceeded nCols
+
+          mov (sp)+, r3
+          mov (sp)+, r4
+          br encBlock
+downMoveBlock:
+          mov (sp)+, r3
+          mov (sp)+, r4
+          mov r5, 2(sp)
+          br encBlock
+          br DendEncode
+endEncodeR:
+          mov (sp)+, r3
+          mov (sp)+, r4
+DendEncode:
+          mov (sp)+, r5
+          tst (sp)+           ;pull the r5 we pushed earlier to return r1's value from the encription
+          rts pc
+          ;call to mix
+          ;call to encryption
+          ;loop with check bounderies
+
+encryptBlock:  ; 14(sp) - nCols address, 16(sp) - Key address, 20(sp) - OImg address
+               ; Order of passing parameters:
+               ; push Image address
+               ; push Key address
+               ; push nCols address
+          mov r1, -(sp)
+          mov r2, -(sp)
+          mov r4, -(sp)
+          mov r5, -(sp)
+          mov r3, -(sp)
+          clr r4
+          mov 20(sp), r1
+          mov 16(sp), r2
+          mov @14(sp), r4
+          bic #177400, r4                 ;gets lower byte of r4, which is nCols
+          mov #4, r5                      ;set counters for sob
+          mov #4, r3
+encryptLine:
+          mov r2,-(sp)                    ;store current node and put it's value in r2
+          mov (r2),r2
+          mov r1,-(sp)                    ;because r1 is byte, we store r1's address and move into it the value for xoring
+          clr r1
+          movb @0(sp), r1
+          xor r2,r1
+          movb r1, @0(sp)
+          mov (sp)+, r1
+          inc r1
+          mov (sp)+, r2
+          add #2, r2                       ;moves to next node in key
+          tst (r2)
+          bne keyLenOK                    ;cycles again the key if nil
+          mov 16(sp), r2
+          sob r5, encryptLine
+          br nextLine
+keyLenOK: mov (r2), r2                    ;get address of new key node
+          sob r5, encryptLine
+nextLine: sub #4, r1                       ;mov r1 to the beginning of line
+          add r4, r1                      ;moves r4 one line forward
+          mov #4, r5
+          sob r3, encryptLine
+          mov (sp)+, r3
+          mov (sp)+, r5
+          mov r1, r5
+          mov (sp)+, r4
+          mov (sp)+, r2
+          mov (sp)+, r1
+          rts pc
+
+mixBlock: ; 14(sp) - nCols address, 16(sp) - Hash address, 20(sp) - OImg address
+           ; Order of passing parameters:
+           ; push Image address
+           ; push Hash address
+           ; push nCols address
+          mov r1, -(sp)
+          mov r2, -(sp)
+          mov r4, -(sp)
+          mov r5, -(sp)
+          mov r3, -(sp)
+          clr r4
+          mov 20(sp), r1
+          mov 16(sp), r2
+          mov @14(sp), r4
+          bic #177400, r4
+          mov #4, r5
+          mov #4, r3
+          mov #4, -(sp)       ; counter for cyclic move
+
+mixLine:
+          mov r2, -(sp)
+          mov r1, -(sp)       ; stores r1-index to img, r2-index to hash
+
+          movb (r1), r1       ;get the value in image to use as index in Hash
+          add r1, r2          ;advance r2 to desired index
+          mov (sp)+, r1
+          movb (r2), r2
+          movb r2, (r1)+
+          mov (sp)+, r2
+          sob r3, mixLine
+          sub #4, r1          ; initialize r1 to points to the first element in line
+
+          mov r5,(sp)
+          sub #4, (sp)        ;checks if cyclic move needs to be taken and how many moves should be done
+          neg (sp)
+          tst (sp)
+          beq nextRow
+          mov r5, -(sp)       ;use r5 as counter for cyclic moves
+          mov r3, -(sp)       ;use r3 as a temp register
+cycleRep:
+          clr r3
+          mov #3, r5
+          add #3, r1          ;r1 should point to the last element in line
+          movb (r1), r3
+
+cycleL:   dec r1              ;move the value of (r1) to the next byte
+          movb (r1), 1(r1)
+          dec r5
+          bne cycleL          ;if finished the cyclic move, continue
+          movb r3, (r1)
+          dec 4(sp)
+          bne cycleRep        ;if finished cyclic operation on the line, continue
+          mov (sp)+, r3
+          mov (sp)+, r5
+nextRow:
+          add r4, r1
+          mov #4, r3
+          sob r5, mixLine
+          tst (sp)+
+          mov (sp)+, r3
+          mov (sp)+, r5
+          mov (sp)+, r4
+          mov (sp)+, r2
+          mov (sp)+, r1
+          rts pc
+
+
+halt
+
+
+
+. = torg + 5000
+nCols: .byte 10
+nRows: .byte 4
+OrigImg: .byte 1, 2, 1, 2, 0, 1, 2, 3
+.byte 3, 4, 3, 4, 4, 5, 6, 7
+.byte 5, 6, 5, 6, 10, 11, 12, 13
+.byte 7, 0, 7, 0, 14, 15, 16, 17
+
+EncImg: .byte 3, 4, 3, 4, 2, 3, 4, 5
+.byte 7, 4, 7, 4, 10, 7, 6, 11
+.byte 7, 10, 7, 10, 14, 15, 12, 13
+.byte 3, 10, 3, 10, 16, 1, 0, 17
+Hash: .byte 2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
+Key:
+node1:  .word 1,node2
+node2:  .word 0,0
+;node3:  .word 2,0
