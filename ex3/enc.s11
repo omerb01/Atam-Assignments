@@ -122,8 +122,11 @@ encryptLine:
           inc r1
           mov (sp)+, r2
           add #2, r2                       ;moves to next node in key
-          tst (r2)
-          bne keyLenOK                    ;cycles again the key if nil
+          cmp @(r2), #177777
+          beq getNewKey                    ;cycles again the key if nil
+          tst(r2)
+          bne keyLenOK
+getNewKey:
           mov 16(sp), r2
           sob r5, encryptLine
           br nextLine
@@ -227,5 +230,5 @@ EncImg: .byte 3, 4, 3, 4, 2, 3, 4, 5
 Hash: .byte 2,3,4,5,6,7,10,11,12,13,14,15,16,17,0,1
 Key:
 node1:  .word 1,node2
-node2:  .word 0,0
-;node3:  .word 2,0
+node2:  .word 0,node3
+node3:  .word -1,0
