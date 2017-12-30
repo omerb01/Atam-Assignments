@@ -457,19 +457,21 @@ IndexFound:
           sub #4, r1          ; initialize r1 to points to the first element in line
 
           mov r5,(sp)         ;r5 = 4 in the beginning
-          sub #4, (sp)        ;checks if cyclic move needs to be taken and how many moves should be done
-          neg (sp)
-          tst (sp)
+          ;sub #4, (sp)        ;checks if cyclic move needs to be taken and how many moves should be done
+          ;neg (sp)
+          cmp (sp), #4
           beq DNextRow
           mov r5, -(sp)       ;use r5 as counter for cyclic moves
           mov r3, -(sp)       ;use r3 as a temp register
 DCyclicRep:
           clr r3
           mov #3, r5
+          add #3, r1          ;r1 should point to the last element in line
           movb (r1), r3
 
-DCyclicLineOp:   inc r1              ;move the value of (r1) to the next byte
-          movb (r1), -1(r1)
+DCyclicLineOp:
+          dec r1              ;move the value of (r1) to the next byte
+          movb (r1), 1(r1)
           dec r5
           bne DCyclicLineOp          ;if finished the cyclic move, continue
           movb r3, (r1)
