@@ -92,4 +92,3 @@ text5: .ascii<TEAM@>
 text6: .ascii<VE@>
 text7: .ascii<AE@>
 text8: .ascii<AM@>
-;comment
