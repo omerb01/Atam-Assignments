@@ -1,0 +1,155 @@
+n=4
+.= torg + 14 ;t-bit
+.word    trace,    0
+.= torg + 30 ;emt
+.word    emth,    0
+.= torg + 1000
+
+main:	mov	pc,	sp
+      tst	-(sp)
+      mov	#n,	r1
+      emt	1
+      jsr	pc,	subr
+      emt	0
+halt
+
+subr:	mov	#1,	result
+      tst	r1
+      beq	esubr
+      dec	r1
+      jsr	pc,	subr
+      inc	r1
+      mul	result,	r1
+      mov	r1,	result
+esubr:	rts	pc
+
+.= torg + 2000
+emth:	mov	(sp),	-(sp)
+      sub	#2,	(sp)
+      mov	@0(sp),	(sp)
+      bic	#177776,	(sp)
+      beq	ct
+      bis	#20,	4(sp)
+      br	eemth
+ct:	bic	#20, 	4(sp)
+eemth:	tst	(sp)+
+rti
+
+flag:	.word 0
+.blkw 200
+spr: 	.word spr
+result:	.word 0
+trace:	mov	@0(sp),	-(sp)
+        jsr	pc,	check
+        tst	(sp)+
+        tst	flag
+        beq	etrace
+        jsr	pc,	handleC
+etrace:	rtt
+
+check:	bic 	#7,	2(sp)
+        cmp	2(sp),	#200
+        bne	ncheck
+        jsr	pc,	restore
+        dec	flag
+        br	echeck
+ncheck:	bic	#770,	2(sp)
+        cmp	2(sp),	#4000
+        bne	echeck
+        jsr	pc,	store
+        inc	flag
+echeck:	rts	pc
+
+store:	sub	#2,	spr
+	clr	@spr
+	rts	pc
+
+restore:	mov	@spr,	-(sp)
+	add	#2,	spr
+	tst	-(sp)
+loop:	mov	2(sp),	(sp)
+	bic	#177770,	(sp)
+	tst	(sp)
+	beq	erestor
+	dec	(sp)
+	bis	(sp),	crest
+crest:	mov	@spr,	r0
+	bic	#7,	crest
+	add	#2,	spr
+	asr	2(sp)
+	asr	2(sp)
+	asr	2(sp)
+	br	loop
+erestor:	cmp	(sp)+,	(sp)+
+	rts	pc
+
+nasl:	mov 	r1,	-(sp)
+	mov	6(sp),	r1
+	ash	4(sp),	r1
+	mov	r1,	6(sp)
+	mov	(sp)+,	r1
+	rts	pc
+
+dstore:	mov	@spr,	-(sp)
+	tst	-(sp)
+	bic	#70,	6(sp)
+	cmp	6(sp),	#5
+	bgt	ignr
+sds:	mov	2(sp),	(sp)
+	bic	#177770,	(sp)
+	beq	sss
+	cmp	(sp),	6(sp)
+	beq	ignr
+	mov	#3,	(sp)
+	jsr	pc,	nasl
+	br	sds
+sss:	jsr	pc,	auxStore
+ignr:	cmp	(sp)+,	(sp)+
+	rts	pc
+
+  handleC:	tst	-(sp)
+  	mov	@4(sp),	-(sp)
+  	jsr	pc,	getType
+  	tst	2(sp)
+  	bne	Hcont
+  	br	eHandle
+  Hcont:	mov 	(sp), 	- (sp)
+  	bic	#177700,	(sp)
+  	jsr	pc,	dstore
+  	tst	(sp)+
+  	mov	#-6,	-(sp)
+  	jsr	pc,	nasl
+  	tst	(sp)+
+  	cmp	2(sp),	#RegOp
+  	beq	ord
+  	cmp	2(sp),	#TwoOp
+  	beq	tod
+  	br	eHandle
+  ord:	bic	#177770,	(sp)
+  	jsr	pc,	dstore
+  	bit	#1,	(sp)
+  	bne	eHandle
+  	inc	(sp)
+  	jsr	pc,	dstore
+  	br	eHandle
+  tod:	bic	#177700,	(sp)
+  	jsr	pc,	dstore
+  eHandle:	cmp	(sp)+,	(sp)+
+  	rts	pc
+
+  auxStore:	mov	@spr,	-(sp)
+  	mov	12(sp),	-(sp)
+  	mov	#6,	-(sp)
+  	jsr	pc,	nasl
+  	tst	(sp)+
+  	bis	(sp)+,	cmd
+  cmd:	mov	r0,	@spr
+  	bic	#700,	cmd
+  	mov	#3,	-(sp)
+  	jsr	pc,	nasl
+  	tst	(sp)+
+  	add	12(sp),	(sp)
+  	inc	(sp)
+  	sub	#2,	spr
+  	mov	(sp)+,	@spr
+  eDD:	rts	pc
