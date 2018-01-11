@@ -1,0 +1,88 @@
+n=4
+.= torg + 14 ;t-bit
+.word    trace,    0
+.= torg + 30 ;emt
+.word    emth,    0
+.= torg + 1000
+
+main:	mov	pc,	sp
+      tst	-(sp)
+      mov	#n,	r1
+      emt	1
+      jsr	pc,	subr
+      emt	0
+halt
+
+subr:	mov	#1,	result
+      tst	r1
+      beq	esubr
+      dec	r1
+      jsr	pc,	subr
+      inc	r1
+      mul	result,	r1
+      mov	r1,	result
+esubr:	rts	pc
+
+.= torg + 2000
+emth:	mov	(sp),	-(sp)
+      sub	#2,	(sp)
+      mov	@0(sp),	(sp)
+      bic	#177776,	(sp)
+      beq	ct
+      bis	#20,	4(sp)
+      br	eemth
+ct:	bic	#20, 	4(sp)
+eemth:	tst	(sp)+
+rti
+
+handleC:	rts	pc
+
+
+flag:	.word 0
+.blkw 200
+spr: 	.word spr
+result:	.word 0
+trace:	mov	@0(sp),	-(sp)
+        jsr	pc,	check
+        tst	(sp)+
+        tst	flag
+        beq	etrace
+        jsr	pc,	handleC
+etrace:	rtt
+
+check:	bic 	#7,	2(sp)
+        cmp	2(sp),	#200
+        bne	ncheck
+        jsr	pc,	restore
+        dec	flag
+        br	echeck
+ncheck:	bic	#770,	2(sp)
+        cmp	2(sp),	#4000
+        bne	echeck
+        jsr	pc,	store
+        inc	flag
+echeck:	rts	pc
+
+store:	sub	#2,	spr
+        mov	r0,	@spr
+        mov	r0,	-(sp)
+        mov	spr,	r0
+ss:	mov	r1,	-(r0) ;pervert function
+    add	#100,	ss
+    cmp	ss,	#010640
+    blt	ss
+    sub	#500,	ss
+    mov	r0,	spr
+    mov	(sp)+,	r0
+    rts	pc
+
+restore:	mov	spr,	r0
+rs:	mov	(r0)+,	r5
+    dec 	rs
+    cmp	rs,	#012000
+    bgt	rs
+    add	#5,	rs
+    mov	r0,	spr
+    mov	@spr,	r0
+    add	#2,	spr
+    rts	pc
