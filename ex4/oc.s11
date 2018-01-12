@@ -14,80 +14,25 @@ asciToOc:; 2(sp) - #str , 4(sp) - size
       mov r3, -(sp)
 
       mov 10(sp), r1           ; 10(sp)=#str
-      mov #0, r2
-      mov 12(sp), r3
+      mov 12(sp), r3          ; 12(sp)=length
 
-toOcSearch:
-      mov #0, r2
-      cmpb (r1), #'0
-      beq toOcFound
+toOcProcess:
+      movb (r1), r2
+      mov r2, -(sp)
+      bic #777637, r2
+      cmp r2, #140            ; is char?
+      beq ocChar
+ocNum:  mov (sp)+, r2
+        bic #777760, r2
+        br ocUpdate
+ocChar: mov (sp)+, r2
+        bic #777770, r2
+        add #11, r2
 
-      inc r2
-      cmpb (r1), #'1
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'2
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'3
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'4
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'5
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'6
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'7
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'8
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'9
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'a
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'b
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'c
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'d
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'e
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'f
-      beq toOcFound
-
-      br toOcFinish
-
-toOcFound:  movb r2, (r1)+
+ocUpdate:   movb r2, (r1)+
             dec r3
             beq toOcFinish
-            br toOcSearch
+            br toOcProcess
 
 toOcFinish: mov (sp)+, r3
             mov (sp)+, r2
@@ -95,5 +40,5 @@ toOcFinish: mov (sp)+, r3
             rts pc
 
 finish: halt
-size: .word 18
+size: .word 20
 str: .ascii<0123456789abcdef>

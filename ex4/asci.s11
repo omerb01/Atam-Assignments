@@ -1,0 +1,40 @@
+. = torg + 1000
+main: mov #main, sp
+
+      mov size, -(sp)
+      mov #str, -(sp)
+      jsr pc, ocToAsci
+      cmp (sp)+, (sp)+
+
+      jmp finish
+
+ocToAsci:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov 12(sp), r3          ; 12(sp)=length
+
+toAsciProcess:
+          movb (r1), r2
+          cmp r2, #12            ; is char?
+          bge asciChar
+asciNum:  bis #60, r2
+          br asciUpdate
+asciChar: bis #140, r2
+          sub #11, r2
+
+asciUpdate:   movb r2, (r1)+
+              dec r3
+              beq toAsciFinish
+              br toAsciProcess
+
+toAsciFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
+
+finish: halt
+size: .word 20
+str: .byte 0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17
