@@ -1,0 +1,152 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+
+
+
+.=torg + 1000
+main: mov pc, sp
+      tst -(sp)
+      mov #Hash, -(sp)
+      jsr pc, cmdSetHash
+      tst (sp)+
+
+halt
+
+.=torg+5000
+; this function received the stack in the following order:
+; return address
+; address pointing to hash
+cmdSetHash:   mov #SHend, -(sp)
+              mov 4(sp), -(sp)    ;push the converted Hash
+              mov #SHstr, -(sp)
+              mov #3, -(sp)       ; "Hash function set to" + <Hash> + "\n\r"
+              jsr pc, printText
+              cmp (sp)+, (sp)+
+              cmp (sp)+, (sp)+
+              mov #16, -(sp)
+              mov 4(sp), -(sp)
+              jsr pc, asciToOc    ;convert Hash to octal
+              cmp (sp)+, (sp)+
+SHstr:        .ascii        <Hash function set to &>
+SHend:        .ascii        <\n\r&>
+              rts pc
+
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.even
+asciToOc:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov #0, r2
+      mov 12(sp), r3
+
+toOcSearch:
+      mov #0, r2
+      cmpb (r1), #'0
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'1
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'2
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'3
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'4
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'5
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'6
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'7
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'8
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'9
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'a
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'b
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'c
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'d
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'e
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'f
+      beq toOcFound
+
+      br toOcFinish
+
+toOcFound:  movb r2, (r1)+
+            dec r3
+            beq toOcFinish
+            br toOcSearch
+
+toOcFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
+printText:  mov r0, -(sp)
+            tst -(sp)      ; index for current string to print in the stack
+            mov r1,-(sp)      ; string iterator
+            mov #12, 2(sp)   ; advance the index to the first string
+            mov 10(sp), r0  ; r0 = num of args
+PTprintString:
+            clr r1
+            add 2(sp), r1
+            add #2, 2(sp)     ; point to next string
+            add sp, r1        ; r1 will point to the current string to print in the stack
+
+PTprintLoop:  tstb @#tps
+            bpl PTprintLoop
+            cmpb @(r1), #'&
+            beq PTstringEnd
+            movb @(r1), @#tpb
+            inc (r1)
+            br PTprintLoop
+
+PTstringEnd:  sob r0, PTprintString
+
+            mov (sp)+, r1
+            tst (sp)+
+            mov (sp)+, r0
+            rts pc
+
+
+
+Hash:       .ascii <23456789abcdef01&>
