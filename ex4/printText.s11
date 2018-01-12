@@ -1,0 +1,53 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+
+
+; recevies num of args to print, then the string addresses
+; Stack:
+; - return address
+; - num of args
+; - addresses
+
+printText:  mov r0, -(sp)
+            tst -(sp)      ; index for current string to print in the stack
+            mov r1,-(sp)      ; string iterator
+            mov #12, 2(sp)   ; advance the index to the first string
+            mov 10(sp), r0  ; r0 = num of args
+PTprintString:
+            clr r1
+            add 2(sp), r1
+            add #2, 2(sp)     ; point to next string
+            add sp, r1        ; r1 will point to the current string to print in the stack
+
+PTprintLoop:  tstb @#tps
+            bpl PTprintLoop
+            cmpb @(r1), #'&
+            beq PTstringEnd
+            movb @(r1), @#tpb
+            inc (r1)
+            br PTprintLoop
+
+PTstringEnd:  sob r0, PTprintString
+
+            mov (sp)+, r1
+            tst (sp)+
+            mov (sp)+, r0
+            rts pc
+
+.=torg+1000
+main: mov pc, sp
+      tst -(sp)
+      mov #str1, -(sp)
+      mov #str2, -(sp)
+      mov #str3, -(sp)
+      mov #3, -(sp)
+      jsr pc, printText
+      cmp (sp)+, (sp)+
+      cmp (sp)+, (sp)+
+      halt
+
+str1: .ascii<WhatTheFuck&>
+str2: .ascii<IHateInfi\n\r&>
+str3: .ascii<WhyAmIDoingThis?\n\r&>
