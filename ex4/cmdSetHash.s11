@@ -8,7 +8,7 @@ tpb = 177566
 .=torg + 1000
 main: mov pc, sp
       tst -(sp)
-      mov #Hash, -(sp)
+      mov #Fash, -(sp)
       jsr pc, cmdSetHash
       tst (sp)+
 
@@ -18,19 +18,38 @@ halt
 ; this function received the stack in the following order:
 ; return address
 ; address pointing to hash
-cmdSetHash:   mov #SHend, -(sp)
+cmdSetHash:   mov #16, -(sp)
+              mov 4(sp), -(sp)
+              jsr pc, asciToOc    ;convert Hash to octal
+              cmp (sp)+, (sp)+
+
+              mov r2, -(sp)
+              mov r3, -(sp)
+              mov #16, -(sp)
+              mov #Hash, r2
+              mov 10(sp), r3
+SHupdateHash: movb (r3)+, (r2)+
+              dec (sp)
+              bne SHupdateHash
+              tst (sp)+
+              mov (sp)+, r2
+              mov (sp)+, r3
+
+              mov #16, -(sp)
+              mov 4(sp), -(sp)
+              jsr pc, ocToAsci    ;convert Hash to octal
+              cmp (sp)+, (sp)+
+
+              mov #SHend, -(sp)
               mov 4(sp), -(sp)    ;push the converted Hash
               mov #SHstr, -(sp)
               mov #3, -(sp)       ; "Hash function set to" + <Hash> + "\n\r"
               jsr pc, printText
               cmp (sp)+, (sp)+
               cmp (sp)+, (sp)+
-              mov #16, -(sp)
-              mov 4(sp), -(sp)
-              jsr pc, asciToOc    ;convert Hash to octal
-              cmp (sp)+, (sp)+
 SHstr:        .ascii        <Hash function set to &>
 SHend:        .ascii        <\n\r&>
+.even
               rts pc
 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -42,85 +61,32 @@ asciToOc:; 2(sp) - #str , 4(sp) - size
       mov r3, -(sp)
 
       mov 10(sp), r1           ; 10(sp)=#str
-      mov #0, r2
-      mov 12(sp), r3
+      mov 12(sp), r3          ; 12(sp)=length
 
-toOcSearch:
-      mov #0, r2
-      cmpb (r1), #'0
-      beq toOcFound
+toOcProcess:
+      movb (r1), r2
+      mov r2, -(sp)
+      bic #777637, r2
+      cmp r2, #140            ; is char?
+      beq ocChar
+ocNum:  mov (sp)+, r2
+        bic #777760, r2
+        br ocUpdate
+ocChar: mov (sp)+, r2
+        bic #777770, r2
+        add #11, r2
 
-      inc r2
-      cmpb (r1), #'1
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'2
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'3
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'4
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'5
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'6
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'7
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'8
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'9
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'a
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'b
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'c
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'d
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'e
-      beq toOcFound
-
-      inc r2
-      cmpb (r1), #'f
-      beq toOcFound
-
-      br toOcFinish
-
-toOcFound:  movb r2, (r1)+
+ocUpdate:   movb r2, (r1)+
             dec r3
             beq toOcFinish
-            br toOcSearch
+            br toOcProcess
 
 toOcFinish: mov (sp)+, r3
             mov (sp)+, r2
             mov (sp)+, r1
             rts pc
+
+
 printText:  mov r0, -(sp)
             tst -(sp)      ; index for current string to print in the stack
             mov r1,-(sp)      ; string iterator
@@ -147,6 +113,34 @@ PTstringEnd:  sob r0, PTprintString
             mov (sp)+, r0
             rts pc
 
+ocToAsci:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov 12(sp), r3          ; 12(sp)=length
+
+toAsciProcess:
+          movb (r1), r2
+          cmp r2, #12            ; is char?
+          bge asciChar
+asciNum:  bis #60, r2
+          br asciUpdate
+asciChar: bis #140, r2
+          sub #11, r2
+
+asciUpdate:   movb r2, (r1)+
+              dec r3
+              beq toAsciFinish
+              br toAsciProcess
+
+toAsciFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
 
 
-Hash:       .ascii <23456789abcdef01&>
+Fash:       .ascii <23456789abcdef01&>
+.even
+Hash:       .blkw 10
