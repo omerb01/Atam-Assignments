@@ -1,0 +1,99 @@
+. = torg + 1000
+main: mov #main, sp
+
+      mov size, -(sp)
+      mov #str, -(sp)
+      jsr pc, asciToOc
+      cmp (sp)+, (sp)+
+
+      jmp finish
+
+asciToOc:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov #0, r2
+      mov 12(sp), r3
+
+toOcSearch:
+      mov #0, r2
+      cmpb (r1), #'0
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'1
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'2
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'3
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'4
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'5
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'6
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'7
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'8
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'9
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'a
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'b
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'c
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'d
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'e
+      beq toOcFound
+
+      inc r2
+      cmpb (r1), #'f
+      beq toOcFound
+
+      br toOcFinish
+
+toOcFound:  movb r2, (r1)+
+            dec r3
+            beq toOcFinish
+            br toOcSearch
+
+toOcFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
+
+finish: halt
+size: .word 18
+str: .ascii<0123456789abcdef>
