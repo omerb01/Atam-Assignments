@@ -64,10 +64,6 @@ keyFinish:
       mov (sp)+, r0
 rts pc
 
-setKeyPrmp: .ascii<Encryption key set to &>
-strKey: .ascii<0a1&>
-.even
-Key: .blkw 100
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ocToAsci:; 2(sp) - #str , 4(sp) - size
       mov r1, -(sp)
@@ -162,3 +158,7 @@ toOcFinish: mov (sp)+, r3
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 finish: halt
+setKeyPrmp: .ascii<Encryption key set to &>
+strKey: .ascii<0a1&>
+.even
+Key: .blkw 100
