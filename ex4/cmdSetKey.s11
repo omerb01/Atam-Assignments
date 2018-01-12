@@ -1,0 +1,164 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+
+. = torg + 1000
+main: mov #main, sp
+
+      mov #strKey, -(sp)
+      jsr pc, cmdSetKey
+      tst (sp)+
+      jmp finish
+
+cmdSetKey:; 2(sp) - #strKey
+
+      mov r0, -(sp)
+      mov r1, -(sp)
+      mov r2, -(sp)
+
+      mov 10(sp), r0               ; 10(sp)=#strKey
+      mov #-1, r1
+
+keyGetSize: inc r1
+      cmpb (r0)+, #'&
+      bne keyGetSize
+
+      cmp r1, #0
+      beq keyFinish
+
+      mov r1, -(sp)                ; r1=length
+      mov 12(sp), -(sp)            ; 12(sp)=#strKey
+      jsr pc, asciToOc
+      cmp (sp)+, (sp)+
+
+      mov #Key, r0
+      mov 10(sp), r2                ; 10(sp)=#strKey
+
+keyCreateList:
+      cmpb #'&, (r2)
+      beq setKeySucces ; change
+      movb (r2)+, (r0)
+      add #2, r0
+      mov r0, (r0)
+      add #2, (r0)+
+      br keyCreateList
+
+setKeySucces:
+      mov #0, -(r0)           ; puts "NIL" at the end of the list
+
+      mov r1, -(sp)             ; r1=length
+      mov 12(sp), -(sp)         ; 12(sp)=#strKey
+      jsr pc, ocToAsci
+      cmp (sp)+, (sp)+
+
+      mov 10(sp), -(sp)         ; 10(sp)=#strKey
+      mov #setKeyPrmp, -(sp)
+      mov #2, -(sp)
+      jsr pc, printText
+      add #6, sp
+
+keyFinish:
+      mov (sp)+, r2
+      mov (sp)+, r1
+      mov (sp)+, r0
+rts pc
+
+setKeyPrmp: .ascii<Encryption key set to &>
+strKey: .ascii<0a1&>
+.even
+Key: .blkw 100
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ocToAsci:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov 12(sp), r3          ; 12(sp)=length
+
+toAsciProcess:
+          movb (r1), r2
+          cmp r2, #12            ; is char?
+          bge asciChar
+asciNum:  bis #60, r2
+          br asciUpdate
+asciChar: bis #140, r2
+          sub #11, r2
+
+asciUpdate:   movb r2, (r1)+
+              dec r3
+              beq toAsciFinish
+              br toAsciProcess
+
+toAsciFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; recevies num of args to print, then the string addresses
+; Stack:
+; - return address
+; - num of args
+; - addresses
+
+printText:  mov r0, -(sp)
+            tst -(sp)      ; index for current string to print in the stack
+            mov r1,-(sp)      ; string iterator
+            mov #12, 2(sp)   ; advance the index to the first string
+            mov 10(sp), r0  ; r0 = num of args
+PTprintString:
+            clr r1
+            add 2(sp), r1
+            add #2, 2(sp)     ; point to next string
+            add sp, r1        ; r1 will point to the current string to print in the stack
+
+PTprintLoop:  tstb @#tps
+            bpl PTprintLoop
+            cmpb @(r1), #'&
+            beq PTstringEnd
+            movb @(r1), @#tpb
+            inc (r1)
+            br PTprintLoop
+
+PTstringEnd:  sob r0, PTprintString
+
+            mov (sp)+, r1
+            tst (sp)+
+            mov (sp)+, r0
+            rts pc
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+asciToOc:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov 12(sp), r3          ; 12(sp)=length
+
+toOcProcess:
+      movb (r1), r2
+      mov r2, -(sp)
+      bic #777637, r2
+      cmp r2, #140            ; is char?
+      beq ocChar
+ocNum:  mov (sp)+, r2
+        bic #777760, r2
+        br ocUpdate
+ocChar: mov (sp)+, r2
+        bic #777770, r2
+        add #11, r2
+
+ocUpdate:   movb r2, (r1)+
+            dec r3
+            beq toOcFinish
+            br toOcProcess
+
+toOcFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+finish: halt
