@@ -34,14 +34,19 @@ cmdEnc: ; 2(sp) - nCols, 4(sp) - nRows
       mov (sp)+, r4
 
       mov r5, -(sp)        ; dimensions
-      mov #IMG3, -(sp)      ; const address
-      mov #IMG3, -(sp)      ; dynamic address
+      mov #TEMPIMG, -(sp)      ; const address
+      mov #TEMPIMG, -(sp)      ; dynamic address
       bis #1, tps
       mov #101, tks
 loop: wait
       bit #1, tks
       bne loop
       add #6, sp
+
+      mov r5, -(sp)             ; r5=dimenstions
+      mov #IMG3, -(sp)
+      jsr pc, parseImg
+      cmp (sp)+, (sp)+
 
       mov r5, -(sp)             ; r5=dimenstions
       mov #IMG3, -(sp)          ; img to convert from asci to octal
@@ -71,6 +76,50 @@ loop: wait
 
 mov (sp)+, r5
 rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+parseImg: mov r1,-(sp)          ; valid Img iterator
+          mov r2, -(sp)         ; temp image terator
+          mov 6(sp), r1
+          mov #TEMPIMG, r2
+PIloop:   clr -(sp)
+          movb (r2), (sp)
+          clr -(sp)             ; 1/0 if is in charset
+          jsr pc, isValidHex
+          cmpb (sp), #1
+          beq copyChar
+          inc r2
+          cmp (sp)+, (sp)+
+          bne PIloop
+copyChar: movb (r2)+, (r1)+
+          clr (sp)
+          cmp (sp)+, (sp)+
+          dec 10(sp)
+          bne PIloop
+
+          mov (sp)+, r2
+          mov (sp)+, r1
+          rts pc
+; stack overview:
+; return addresses
+; blank space
+; char to be checked
+isValidHex: mov r1, -(sp)       ;charset iterator
+            mov #charSet, r1
+nextChar:   cmpb (r1), 6(sp)
+            beq validFinish
+            cmpb (r1), #'&
+            beq notCharset
+            inc r1
+            br nextChar
+validFinish: mov #1, 4(sp)
+notCharset:  mov (sp)+, r1
+             rts pc
+
+.even
+charSet: .ascii<0123456789abcdef&>
+.even
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -434,10 +483,13 @@ imgInput: ; 4(sp) - dynamic Img address, 6(sp) - const Img address, 10(sp) - dim
 
               cmp r1, #'\b
               bne imgInpEnter
-              cmp 10(sp), 12(sp)
-              beq imgInpPrint
+              cmp 10(sp), 12(sp)      ; 10(sp)=dymanic Img's addres , 12(sp)=const Img's addres
+              beq imgInpFinish
+              mov 10(sp), r2          ; 10(sp)=dymanic Img's addres
+              cmpb -(r2), #'\r
+              beq imgInpFinish
               dec 10(sp)
-              movb #0, @10(sp)       ; 10(sp)=Img's Address
+              movb #0, @10(sp)       ; 10(sp)=dymanic Img's Address
               br imgInpPrint
 
 imgInpEnter:  cmp r1, #'\r        ; is Enter?
@@ -453,7 +505,7 @@ imgInpEnter:  cmp r1, #'\r        ; is Enter?
 imgPrintLF:   bit #200, tps
               beq imgPrintLF
               mov #'\n, tpb
-              br imgInpPrint
+              br imgInpUpdate
 
 imgInpUpdate: movb r1, @10(sp)     ; 10(sp)=Img's address
               inc 10(sp)
@@ -499,7 +551,7 @@ countNum:   cmpb (r0), #60
             blo countFalse
             cmpb (r0), #71
             bhi countFalse
-            br imgInpUpdate
+            br countTrue
 
 countTrue:  inc r1
 countFalse: inc r0
@@ -528,3 +580,4 @@ Key:
   node6:  .word -1, 0
 .even
 IMG3: .blkw 1000
+TEMPIMG: .blkw 1000

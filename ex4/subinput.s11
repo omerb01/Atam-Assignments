@@ -29,10 +29,13 @@ imgInput: ; 4(sp) - dynamic Img address, 6(sp) - const Img address, 10(sp) - dim
 
               cmp r1, #'\b
               bne imgInpEnter
-              cmp 10(sp), 12(sp)
-              beq imgInpPrint
+              cmp 10(sp), 12(sp)      ; 10(sp)=dymanic Img's addres , 12(sp)=const Img's addres
+              beq imgInpFinish
+              mov 10(sp), r2          ; 10(sp)=dymanic Img's addres
+              cmpb -(r2), #'\r
+              beq imgInpFinish
               dec 10(sp)
-              movb #0, @10(sp)       ; 10(sp)=Img's Address
+              movb #0, @10(sp)       ; 10(sp)=dymanic Img's Address
               br imgInpPrint
 
 imgInpEnter:  cmp r1, #'\r        ; is Enter?
@@ -48,7 +51,7 @@ imgInpEnter:  cmp r1, #'\r        ; is Enter?
 imgPrintLF:   bit #200, tps
               beq imgPrintLF
               mov #'\n, tpb
-              br imgInpPrint
+              br imgInpUpdate
 
 imgInpUpdate: movb r1, @10(sp)     ; 10(sp)=Img's address
               inc 10(sp)
@@ -94,7 +97,7 @@ countNum:   cmpb (r0), #60
             blo countFalse
             cmpb (r0), #71
             bhi countFalse
-            br imgInpUpdate
+            br countTrue
 
 countTrue:  inc r1
 countFalse: inc r0

@@ -48,8 +48,11 @@ validFinish: mov #1, 4(sp)
 notCharset:  mov (sp)+, r1
              rts pc
 
-
+.even
 charSet: .ascii<0123456789abcdef&>
+.even
+
+
 TEMPIMG: .ascii <Y0ssiTh3King>
 ;TEMPIMG: .blkw 1000
 .even
