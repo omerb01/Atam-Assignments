@@ -1,25 +1,19 @@
-
-
 .= torg + 1000
 main: mov #main, sp
-      mov #1, -(sp)
-      mov #TI, -(sp)
+      mov #2, -(sp)
+      mov #VALID, -(sp)
       jsr pc, parseImg
       cmp (sp)+,(sp)+
 halt
 ;receives the following stack:
-
-
-
-
 ; return address
 ; valid Img address
 ; size of desired IMG3
 ; (**)
 parseImg: mov r1,-(sp)          ; valid Img iterator
           mov r2, -(sp)         ; temp image terator
-          mov #VALID, r1
-          mov 6(sp), r2
+          mov 6(sp), r1
+          mov #TEMPIMG, r2
 PIloop:   clr -(sp)
           movb (r2), (sp)
           clr -(sp)             ; 1/0 if is in charset
@@ -56,7 +50,7 @@ notCharset:  mov (sp)+, r1
 
 
 charSet: .ascii<0123456789abcdef&>
-TI: .ascii <YossiTh3King>
+TEMPIMG: .ascii <Y0ssiTh3King>
 ;TEMPIMG: .blkw 1000
 .even
 VALID: .blkw 6
