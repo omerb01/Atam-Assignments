@@ -57,7 +57,7 @@ loop: wait
       mov 10(sp), -(sp)            ; 10(sp)=nRows address
       mov 10(sp), -(sp)            ; 10(sp)=nCols address
       mov #Hash, -(sp)
-      mov #Key, -(sp)
+      mov #KeyUse, -(sp)
       jsr pc, encode
       add #12, sp
 
@@ -574,7 +574,7 @@ encPrmt1: .ascii<Please enter image to encode\n\r&>
 encPrmt2: .ascii<\n\rThe encoded image is:\n\r&>
 Hash:  .byte  17,16,15,14,13,12,11,10,7,6,5,4,3,2,1,0
 .even
-Key:
+KeyUse:
   node4:  .word 3, node5
   node5:  .word 0, node6
   node6:  .word -1, 0

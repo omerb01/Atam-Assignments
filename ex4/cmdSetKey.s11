@@ -32,7 +32,7 @@ keyGetSize: inc r1
       jsr pc, asciToOc
       cmp (sp)+, (sp)+
 
-      mov #Key, r0
+      mov #KeyUse, r0
       mov 10(sp), r2                ; 10(sp)=#strKey
 
 keyCreateList:
@@ -161,4 +161,4 @@ finish: halt
 setKeyPrmp: .ascii<Encryption key set to &>
 strKey: .ascii<0a1&>
 .even
-Key: .blkw 100
+KeyUse: .blkw 100

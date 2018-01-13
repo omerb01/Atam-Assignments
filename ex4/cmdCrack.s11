@@ -1,0 +1,343 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+
+.= torg + 60
+.word imgInput, 200
+
+.= torg + 1000
+main: mov #main, sp
+
+      mov #3, -(sp)         ; key's max size
+      mov #nRows, -(sp)
+      mov #nCols, -(sp)
+      jsr pc, cmdCrack
+      cmp (sp)+, (sp)+
+      tst (sp)+
+
+      jmp finish
+
+cmdCrack: ; 2(sp) - nCols , 4(sp) - nRows, 6(sp) - key's max size
+
+      mov r5, -(sp)
+
+      mov #crkPrmt1, -(sp)
+      mov #1, -(sp)
+      jsr pc, printText
+      cmp (sp)+, (sp)+
+
+      clr r5
+      movb @4(sp), r5         ; 4(sp) = nCols
+      mov r4, -(sp)
+      clr r4
+      movb @6(sp), r4    ; 6(sp) = nRows
+      mul r4, r5
+      mov (sp)+, r4
+
+      mov r5, -(sp)            ; dimensions
+      mov #TEMPIMG, -(sp)      ; const address
+      mov #TEMPIMG, -(sp)      ; dynamic address
+      bis #1, tps
+      mov #101, tks
+crkLoop1: wait
+      bit #1, tks
+      bne crkLoop1
+      add #6, sp
+
+      mov r5, -(sp)             ; r5=dimenstions
+      mov #IMG1, -(sp)
+      jsr pc, parseImg
+      cmp (sp)+, (sp)+
+
+      mov r5, -(sp)             ; r5=dimenstions
+      mov #IMG1, -(sp)          ; img to convert from asci to octal
+      jsr pc, asciToOc
+      cmp (sp)+, (sp)+
+
+      mov #crkPrmt2, -(sp)
+      mov #1, -(sp)
+      jsr pc, printText
+      cmp (sp)+, (sp)+
+
+      mov r5, -(sp)            ; dimensions
+      mov #TEMPIMG, -(sp)      ; const address
+      mov #TEMPIMG, -(sp)      ; dynamic address
+      bis #1, tps
+      mov #101, tks
+crkLoop2: wait
+      bit #1, tks
+      bne crkLoop2
+      add #6, sp
+
+      mov r5, -(sp)             ; r5=dimenstions
+      mov #IMG2, -(sp)
+      jsr pc, parseImg
+      cmp (sp)+, (sp)+
+
+      mov r5, -(sp)             ; r5=dimenstions
+      mov #IMG2, -(sp)          ; img to convert from asci to octal
+      jsr pc, asciToOc
+      cmp (sp)+, (sp)+
+
+mov (sp)+, r5
+rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+imgInput: ; 4(sp) - dynamic Img address, 6(sp) - const Img address, 10(sp) - dimensions
+      mov r1, -(sp)
+      mov r2, -(sp)
+
+      clr r1
+      movb tkb, r1
+
+              cmp r1, #'\b
+              bne imgInpEnter
+              cmp 10(sp), 12(sp)      ; 10(sp)=dymanic Img's addres , 12(sp)=const Img's addres
+              beq imgInpFinish
+              mov 10(sp), r2          ; 10(sp)=dymanic Img's addres
+              cmpb -(r2), #'\r
+              beq imgInpFinish
+              dec 10(sp)
+              movb #0, @10(sp)       ; 10(sp)=dymanic Img's Address
+              br imgInpPrint
+
+imgInpEnter:  cmp r1, #'\r        ; is Enter?
+              bne imgInpUpdate
+              tst -(sp)               ; OUTPUT
+              mov 12(sp), -(sp)       ; 12(sp)=dynamic Img address
+              mov 16(sp), -(sp)       ; 16(sp)=const Img address
+              jsr pc, imgInpCount
+              cmp (sp)+, (sp)+
+              mov (sp)+, r2
+              cmp r2, 14(sp)        ; 14(sp)=dimensions
+              bhis imgIpEnd
+imgPrintLF:   bit #200, tps
+              beq imgPrintLF
+              mov #'\n, tpb
+              br imgInpUpdate
+
+imgInpUpdate: movb r1, @10(sp)     ; 10(sp)=Img's address
+              inc 10(sp)
+              br imgInpPrint
+
+imgIpBS1:     mov #40, r1         ; 40=" "
+              bit #200, tps
+              beq imgIpBS1
+              mov r1, tpb
+imgIpBS2:     mov #'\b, r1
+              bit #200, tps
+              beq imgIpBS2
+              mov r1, tpb
+              br imgInpFinish
+imgInpPrint:  bit #200, tps
+              beq imgInpPrint
+              mov r1, tpb
+              cmp r1, #'\b
+              bne imgInpFinish
+              br imgIpBS1
+
+imgInpFinish: inc tks
+imgIpEnd:     mov (sp)+, r2
+              mov (sp)+, r1
+              rti
+
+imgInpCount: ; 2(sp) - start addres, 4(sp) - end address, 6(sp) - OUTPUT
+
+      mov r0, -(sp)
+      mov r1, -(sp)
+
+      mov 6(sp), r0             ; 6(sp) - start address
+      clr r1
+
+countCont:
+countChar:  cmpb (r0), #141
+            blo countNum
+            cmpb (r0), #146
+            bhi countNum
+            br countTrue
+
+countNum:   cmpb (r0), #60
+            blo countFalse
+            cmpb (r0), #71
+            bhi countFalse
+            br countTrue
+
+countTrue:  inc r1
+countFalse: inc r0
+            cmp 10(sp), r0      ; 10(sp) - end address
+            bhi countCont
+
+countFinish:  mov r1, 12(sp)    ; 12(sp) - OUTPUT
+              mov (sp)+, r1
+              mov (sp)+, r0
+              rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; recevies num of args to print, then the string addresses
+; Stack:
+; - return address
+; - num of args
+; - addresses
+
+printText:  mov r0, -(sp)
+            tst -(sp)      ; index for current string to print in the stack
+            mov r1,-(sp)      ; string iterator
+            mov #12, 2(sp)   ; advance the index to the first string
+            mov 10(sp), r0  ; r0 = num of args
+PTprintString:
+            clr r1
+            add 2(sp), r1
+            add #2, 2(sp)     ; point to next string
+            add sp, r1        ; r1 will point to the current string to print in the stack
+
+PTprintLoop:  tstb @#tps
+            bpl PTprintLoop
+            cmpb @(r1), #'&
+            beq PTstringEnd
+            movb @(r1), @#tpb
+            inc (r1)
+            br PTprintLoop
+
+PTstringEnd:  sob r0, PTprintString
+
+            mov (sp)+, r1
+            tst (sp)+
+            mov (sp)+, r0
+            rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+;receives the following stack:
+; return address
+; valid Img address
+; size of desired IMG3
+; (**)
+parseImg: mov r1,-(sp)          ; valid Img iterator
+          mov r2, -(sp)         ; temp image terator
+          mov 6(sp), r1
+          mov #TEMPIMG, r2
+PIloop:   clr -(sp)
+          movb (r2), (sp)
+          clr -(sp)             ; 1/0 if is in charset
+          jsr pc, isValidHex
+          cmpb (sp), #1
+          beq copyChar
+          inc r2
+          cmp (sp)+, (sp)+
+          bne PIloop
+copyChar: movb (r2)+, (r1)+
+          clr (sp)
+          cmp (sp)+, (sp)+
+          dec 10(sp)
+          bne PIloop
+
+          mov (sp)+, r2
+          mov (sp)+, r1
+          rts pc
+; stack overview:
+; return addresses
+; blank space
+; char to be checked
+isValidHex: mov r1, -(sp)       ;charset iterator
+            mov #charSet, r1
+nextChar:   cmpb (r1), 6(sp)
+            beq validFinish
+            cmpb (r1), #'&
+            beq notCharset
+            inc r1
+            br nextChar
+validFinish: mov #1, 4(sp)
+notCharset:  mov (sp)+, r1
+             rts pc
+
+.even
+charSet: .ascii<0123456789abcdef&>
+.even
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+asciToOc:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov 12(sp), r3          ; 12(sp)=length
+
+toOcProcess:
+      movb (r1), r2
+      mov r2, -(sp)
+      bic #777637, r2
+      cmp r2, #140            ; is char?
+      beq ocChar
+ocNum:  mov (sp)+, r2
+        bic #777760, r2
+        br ocUpdate
+ocChar: mov (sp)+, r2
+        bic #777770, r2
+        add #11, r2
+
+ocUpdate:   movb r2, (r1)+
+            dec r3
+            beq toOcFinish
+            br toOcProcess
+
+toOcFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ocToAsci:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov 12(sp), r3          ; 12(sp)=length
+
+toAsciProcess:
+          movb (r1), r2
+          cmp r2, #12            ; is char?
+          bge asciChar
+asciNum:  bis #60, r2
+          br asciUpdate
+asciChar: bis #140, r2
+          sub #11, r2
+
+asciUpdate:   movb r2, (r1)+
+              dec r3
+              beq toAsciFinish
+              br toAsciProcess
+
+toAsciFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+finish: halt
+.even
+nCols: .byte 4
+nRows: .byte 4
+.even
+crkPrmt1: .ascii<Please enter image\n\r&>
+crkPrmt2: .ascii<\n\rPlease enter encoded image\n\r&>
+Hash:  .byte  17,16,15,14,13,12,11,10,7,6,5,4,3,2,1,0
+.even
+KeyUse:
+  node4:  .word 3, node5
+  node5:  .word 0, node6
+  node6:  .word -1, 0
+.even
+Key: .blkw 50
+.even
+IMG1: .blkw 1000
+IMG2: .blkw 1000
+IMG3: .blkw 1000
+TEMPIMG: .blkw 1000
