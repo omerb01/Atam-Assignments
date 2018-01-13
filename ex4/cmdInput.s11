@@ -1,0 +1,79 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+lcs = 177546
+
+.= torg + 60
+.word cmdInput, 200
+
+.= torg + 1000
+main: mov #main, sp
+
+      mov #TEMPCMD, -(sp)      ; const address
+      mov #TEMPCMD, -(sp)      ; dynamic address
+      bis #1, tps
+      mov #101, tks
+
+loop: wait
+      br loop
+
+      jmp finish
+
+cmdInput:; 4(sp) - dynamic cmd address, 6(sp) - const cmd address
+      mov r1, -(sp)
+      mov r2, -(sp)
+
+      clr r1
+      movb tkb, r1
+
+              cmp r1, #'\b
+              bne cmdInpEnter
+              cmp 10(sp), 12(sp)      ; 10(sp)=dymanic cmd's addres , 12(sp)=const cmd's addres
+              beq cmdInpFinish
+              dec 10(sp)
+              movb #0, @10(sp)       ; 10(sp)=dymanic cmd's Address
+              br cmdInpPrint
+
+cmdInpEnter:  cmp r1, #'\r        ; is Enter?
+              bne cmdInpUpdate
+cmdPrtLF:     bit #200, tps
+              beq cmdPrtLF
+              mov #'\n, tpb
+cmdPrtCR:     bit #200, tps
+              beq cmdPrtCR
+              mov #'\r, tpb
+              movb #'&, @10(sp)     ; 10(sp)=cmd's address
+              inc 10(sp)
+  ;;;;;;;;; FUNCTIONS CALLS ;;;;;;;;;;;;
+              br cmdIpEnd
+
+cmdInpUpdate: movb r1, @10(sp)     ; 10(sp)=cmd's address
+              inc 10(sp)
+              br cmdInpPrint
+
+cmdIpBS1:     mov #40, r1         ; 40=" "
+              bit #200, tps
+              beq cmdIpBS1
+              mov r1, tpb
+cmdIpBS2:     mov #'\b, r1
+              bit #200, tps
+              beq cmdIpBS2
+              mov r1, tpb
+              br cmdInpFinish
+cmdInpPrint:  bit #200, tps
+              beq cmdInpPrint
+              mov r1, tpb
+              cmp r1, #'\b
+              bne cmdInpFinish
+              br cmdIpBS1
+
+cmdInpFinish: inc tks
+cmdIpEnd:     mov (sp)+, r2
+              mov (sp)+, r1
+              rti
+
+
+
+finish: halt
+TEMPCMD: .blkw 1000
