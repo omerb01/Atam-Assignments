@@ -1,0 +1,36 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+
+.= torg + 1000
+main: mov #main, sp
+
+      mov #1, -(sp)
+      jsr pc, crkGenKey
+
+crkGenKey:  mov r1, -(sp)
+            mov r2, -(sp)
+            mov #Key, r1
+            mov #Key, r2
+            add #4, r2
+
+CgenNext:   mov #1, (r1)
+            neg (r1)
+            add #2, r1
+            mov r2, (r1)
+            add #4, r2
+            add #2, r1
+            dec 6(sp)
+            bne CgenNext
+            sub #2, r1
+            mov #0, (r1)
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+finish: halt
+.even
+Key:  .blkw 50
