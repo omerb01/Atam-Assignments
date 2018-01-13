@@ -9,7 +9,7 @@ tpb = 177566
 .= torg + 1000
 main: mov #main, sp
 
-      mov #20, -(sp)         ; dimensions
+      mov #5, -(sp)         ; dimensions
       mov #IMG1, -(sp)      ; const address
       mov #IMG1, -(sp)      ; dynamic address
       bis #1, tps
@@ -29,32 +29,26 @@ imgInput: ; 4(sp) - dynamic Img address, 6(sp) - const Img address, 10(sp) - dim
 
               cmp r1, #'\b
               bne imgInpEnter
-              movb #0, @10(sp)       ; 10(sp)=Img's Address
+              cmp 10(sp), 12(sp)
+              beq imgInpPrint
               dec 10(sp)
+              movb #0, @10(sp)       ; 10(sp)=Img's Address
               br imgInpPrint
 
 imgInpEnter:  cmp r1, #'\r        ; is Enter?
-              bne imgInpChar
-              mov 10(sp), r2         ; 10(sp)=dynamic Img address
-              sub 14(sp), r2        ; 14(sp)=dimensions
-              cmp r2, 12(sp)        ; 12(sp)=const Img address
+              bne imgInpUpdate
+              tst -(sp)               ; OUTPUT
+              mov 12(sp), -(sp)       ; 12(sp)=dynamic Img address
+              mov 16(sp), -(sp)       ; 16(sp)=const Img address
+              jsr pc, imgInpCount
+              cmp (sp)+, (sp)+
+              mov (sp)+, r2
+              cmp r2, 14(sp)        ; 14(sp)=dimensions
               bhis imgIpEnd
 imgPrintLF:   bit #200, tps
               beq imgPrintLF
               mov #'\n, tpb
               br imgInpPrint
-
-imgInpChar:   cmp r1, #141
-              blo imgInpNum
-              cmp r1, #146
-              bhi imgInpNum
-              br imgInpUpdate
-
-imgInpNum:    cmp r1, #60
-              blo imgInpPrint
-              cmp r1, #71
-              bhi imgInpPrint
-              br imgInpUpdate
 
 imgInpUpdate: movb r1, @10(sp)     ; 10(sp)=Img's address
               inc 10(sp)
@@ -81,8 +75,40 @@ imgIpEnd:     mov (sp)+, r2
               mov (sp)+, r1
               rti
 
+imgInpCount: ; 2(sp) - start addres, 4(sp) - end address, 6(sp) - OUTPUT
+
+      mov r0, -(sp)
+      mov r1, -(sp)
+
+      mov 6(sp), r0             ; 6(sp) - start address
+      clr r1
+
+countCont:
+countChar:  cmpb (r0), #141
+            blo countNum
+            cmpb (r0), #146
+            bhi countNum
+            br countTrue
+
+countNum:   cmpb (r0), #60
+            blo countFalse
+            cmpb (r0), #71
+            bhi countFalse
+            br imgInpUpdate
+
+countTrue:  inc r1
+countFalse: inc r0
+            cmp 10(sp), r0      ; 10(sp) - end address
+            bhi countCont
+
+countFinish:  mov r1, 12(sp)    ; 12(sp) - OUTPUT
+              mov (sp)+, r1
+              mov (sp)+, r0
+              rts pc
+
 finish: halt
 
+TEMPIMG: .blkw 1000
 IMG1: .blkw 1000
 IMG2: .blkw 1000
 IMG3: .blkw 1000
