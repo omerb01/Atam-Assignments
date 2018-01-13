@@ -1,0 +1,63 @@
+
+
+.= torg + 1000
+main: mov #main, sp
+      mov #1, -(sp)
+      mov #TI, -(sp)
+      jsr pc, parseImg
+      cmp (sp)+,(sp)+
+halt
+;receives the following stack:
+
+
+
+
+; return address
+; valid Img address
+; size of desired IMG3
+; (**)
+parseImg: mov r1,-(sp)          ; valid Img iterator
+          mov r2, -(sp)         ; temp image terator
+          mov #VALID, r1
+          mov 6(sp), r2
+PIloop:   clr -(sp)
+          movb (r2), (sp)
+          clr -(sp)             ; 1/0 if is in charset
+          jsr pc, isValidHex
+          cmpb (sp), #1
+          beq copyChar
+          inc r2
+          cmp (sp)+, (sp)+
+          bne PIloop
+copyChar: movb (r2)+, (r1)+
+          clr (sp)
+          cmp (sp)+, (sp)+
+          dec 10(sp)
+          bne PIloop
+
+          mov (sp)+, r2
+          mov (sp)+, r1
+          rts pc
+; stack overview:
+; return addresses
+; blank space
+; char to be checked
+isValidHex: mov r1, -(sp)       ;charset iterator
+            mov #charSet, r1
+nextChar:   cmpb (r1), 6(sp)
+            beq validFinish
+            cmpb (r1), #'&
+            beq notCharset
+            inc r1
+            br nextChar
+validFinish: mov #1, 4(sp)
+notCharset:  mov (sp)+, r1
+             rts pc
+
+
+charSet: .ascii<0123456789abcdef&>
+TI: .ascii <YossiTh3King>
+;TEMPIMG: .blkw 1000
+.even
+VALID: .blkw 6
+;we want: e13ac
