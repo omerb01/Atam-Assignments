@@ -1,0 +1,145 @@
+
+tps = 177564
+tpb = 177566
+
+.=torg+1000
+main: mov pc, sp
+      tst -(sp)
+      mov #40, -(sp)
+      mov #10, -(sp)
+      jsr pc, cmdPrint
+
+IMG4: .byte 0,11,1,2,3,15,1,0
+      .byte 12,2,13,3,4,15,2,0
+      .byte 2,14,2,5,6,14,2,0
+      .byte 1,2,3,4,12,13,14,0
+
+
+IMG3: .byte 0,1,2,8,3,4,5,6,11,12,13,14,15,16,17,7,0,1,2,10,3,4,5,6,11,7,0,1,2,3,12,0
+.even
+      .byte 4,5,13,6,14,7,0,1,2,3,4,15,5,6,7,0,1,2,16,3,17,4,5,6,10,11,7,0,1,12,13,0
+      .even
+      .byte 5,14,3,4,5,15,6,7,0,1,2,16,3,4,5,6,7,17,0,1,2,10,3,4,11,5,12,6,13,7,14,0
+      .even
+      .byte 15,0,1,2,3,4,15,5,6,7,0,17,1,2,3,4,10,5,6,7,0,1,11,2,12,3,4,13,5,6,14,0
+      .even
+      .byte 15,16,17,10,11,12,13,7,0,1,2,14,3,4,5,6,15,16,17,10,11,12,13,7,14,0,1,2,3,4,15,0
+      .even
+      .byte 16,5,6,7,0,1,17,2,3,4,5,10,6,7,0,1,11,2,3,4,5,6,12,7,13,0,1,2,3,4,14,0
+
+      .byte 15,5,6,7,0,1,16,2,3,4,5,17,2,3,4,5,17,6,7,0,0,1,10,2,13,4,1,2,3,4,13,0
+
+      .byte 5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,0
+.even
+halt
+
+; receives the following stack:
+; temp r1
+; columns
+; rows
+; return address
+; amount of rows
+; amount of columns
+
+cmdPrint: mov 2(sp), -(sp)
+          mov 6(sp), -(sp)
+          mov (r1), -(sp)         ;IMG iterator
+          mov #IMG3, r1
+          bit #1, @#tps
+PstepCol:
+          mov #1, -(sp)
+          mov r1, -(sp)
+          jsr pc, asciToOc        ;converts the byte into ascii
+          cmp (sp)+, (sp)+
+Pbusy_wait: tstb @#tps
+          bpl Pbusy_wait
+          cmpb (r1), #10
+          bge Pprintstar
+          movb #' , @#tpb        ;prints the byte in the IMG
+          br Pcont
+Pprintstar:
+          movb #'*, @#tpb
+
+Pcont:    mov #1, -(sp)
+          mov r1, -(sp)
+          jsr pc, ocToAsci        ;converts it back to octal
+          cmp (sp)+, (sp)+
+          inc r1
+          dec 2(sp)
+          bne PstepCol
+Pnewline:tstb @#tps              ;prints newline
+          bpl Pnewline
+          movb #'\r, @#tpb
+Pnewcrline:
+          tstb @#tps
+          bpl Pnewcrline
+          movb #'\n, @#tpb
+
+          mov 12(sp), 2(sp)
+          dec 4(sp)               ;continues to the next line
+          bne PstepCol
+
+          tst (sp)+
+          cmp (sp)+, (sp)+
+          rts pc
+
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
+
+ocToAsci:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov 12(sp), r3          ; 12(sp)=length
+
+toAsciProcess:
+          movb (r1), r2
+          cmp r2, #12            ; is char?
+          bge asciChar
+asciNum:  bis #60, r2
+          br asciUpdate
+asciChar: bis #140, r2
+          sub #11, r2
+
+asciUpdate:   movb r2, (r1)+
+              dec r3
+              beq toAsciFinish
+              br toAsciProcess
+
+toAsciFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
+
+asciToOc:; 2(sp) - #str , 4(sp) - size
+      mov r1, -(sp)
+      mov r2, -(sp)
+      mov r3, -(sp)
+
+      mov 10(sp), r1           ; 10(sp)=#str
+      mov 12(sp), r3          ; 12(sp)=length
+
+toOcProcess:
+      movb (r1), r2
+      mov r2, -(sp)
+      bic #777637, r2
+      cmp r2, #140            ; is char?
+      beq ocChar
+ocNum:  mov (sp)+, r2
+        bic #777760, r2
+        br ocUpdate
+ocChar: mov (sp)+, r2
+        bic #777770, r2
+        add #11, r2
+
+ocUpdate:   movb r2, (r1)+
+            dec r3
+            beq toOcFinish
+            br toOcProcess
+
+toOcFinish: mov (sp)+, r3
+            mov (sp)+, r2
+            mov (sp)+, r1
+            rts pc
