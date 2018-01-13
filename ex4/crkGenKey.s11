@@ -11,14 +11,14 @@ main: mov #main, sp
 
 crkGenKey:  mov r1, -(sp)
             mov r2, -(sp)
-            mov #Key, r1
-            mov #Key, r2
+            mov #Key, r1      ;iterator for node's value
+            mov #Key, r2      ;iterator for next node
             add #4, r2
 
-CgenNext:   mov #1, (r1)
+CgenNext:   mov #1, (r1)      ;initializes the value to be -1
             neg (r1)
             add #2, r1
-            mov r2, (r1)
+            mov r2, (r1)      ;sets next node to be r2's value
             add #4, r2
             add #2, r1
             dec 6(sp)
