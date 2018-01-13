@@ -69,11 +69,11 @@ Pcont:    mov #1, -(sp)
           bne PstepCol
 Pnewline:tstb @#tps              ;prints newline
           bpl Pnewline
-          movb #'\r, @#tpb
+          movb #'\n, @#tpb
 Pnewcrline:
           tstb @#tps
           bpl Pnewcrline
-          movb #'\n, @#tpb
+          movb #'\r, @#tpb
 
           mov 12(sp), 2(sp)
           dec 4(sp)               ;continues to the next line

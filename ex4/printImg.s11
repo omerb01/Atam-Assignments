@@ -55,11 +55,11 @@ PIbusy_wait: tstb @#tps
           bne PIstepCol
 PInewline:tstb @#tps              ;prints newline
           bpl PInewline
-          movb #'\r, @#tpb
+          movb #'\n, @#tpb
 PInewcrline:
           tstb @#tps
           bpl PInewcrline
-          movb #'\n, @#tpb
+          movb #'\r, @#tpb
 
           mov 12(sp), 2(sp)
           dec 4(sp)               ;continues to the next line
