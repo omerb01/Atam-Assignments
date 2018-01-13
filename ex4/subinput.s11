@@ -1,0 +1,88 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+
+.= torg + 60
+.word imgInput, 200
+
+.= torg + 1000
+main: mov #main, sp
+
+      mov #20, -(sp)         ; dimensions
+      mov #IMG1, -(sp)      ; const address
+      mov #IMG1, -(sp)      ; dynamic address
+      bis #1, tps
+      mov #101, tks
+
+loop: wait
+      br loop
+
+      jmp finish
+
+imgInput: ; 4(sp) - dynamic Img address, 6(sp) - const Img address, 10(sp) - dimensions
+      mov r1, -(sp)
+      mov r2, -(sp)
+
+      clr r1
+      movb tkb, r1
+
+              cmp r1, #'\b
+              bne imgInpEnter
+              movb #0, @10(sp)       ; 10(sp)=Img's Address
+              dec 10(sp)
+              br imgInpPrint
+
+imgInpEnter:  cmp r1, #'\r        ; is Enter?
+              bne imgInpChar
+              mov 10(sp), r2         ; 10(sp)=dynamic Img address
+              sub 14(sp), r2        ; 14(sp)=dimensions
+              cmp r2, 12(sp)        ; 12(sp)=const Img address
+              bhis imgIpEnd
+imgPrintLF:   bit #200, tps
+              beq imgPrintLF
+              mov #'\n, tpb
+              br imgInpPrint
+
+imgInpChar:   cmp r1, #141
+              blo imgInpNum
+              cmp r1, #146
+              bhi imgInpNum
+              br imgInpUpdate
+
+imgInpNum:    cmp r1, #60
+              blo imgInpPrint
+              cmp r1, #71
+              bhi imgInpPrint
+              br imgInpUpdate
+
+imgInpUpdate: movb r1, @10(sp)     ; 10(sp)=Img's address
+              inc 10(sp)
+              br imgInpPrint
+
+imgIpBS1:     mov #40, r1         ; 40=" "
+              bit #200, tps
+              beq imgIpBS1
+              mov r1, tpb
+imgIpBS2:     mov #'\b, r1
+              bit #200, tps
+              beq imgIpBS2
+              mov r1, tpb
+              br imgInpFinish
+imgInpPrint:  bit #200, tps
+              beq imgInpPrint
+              mov r1, tpb
+              cmp r1, #'\b
+              bne imgInpFinish
+              br imgIpBS1
+
+imgInpFinish: inc tks
+imgIpEnd:     mov (sp)+, r2
+              mov (sp)+, r1
+              rti
+
+finish: halt
+
+IMG1: .blkw 1000
+IMG2: .blkw 1000
+IMG3: .blkw 1000
