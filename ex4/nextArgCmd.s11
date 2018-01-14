@@ -1,0 +1,38 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+
+.= torg + 1000
+main: mov #main, sp
+      clr -(sp)
+      jsr pc, nextArgCmd
+      tst (sp)+
+      jmp finish
+
+; Recevies the following stack:
+; return address
+; empty space for address
+
+nextArgCmd: mov r1, -(sp)
+            mov #CMDLINE, r1
+
+NAloop:     cmpb (r1), #'&
+            beq NAamper
+            cmpb (r1), #'@
+            beq NAsht
+            inc r1
+            br NAloop
+NAamper:    mov r1, 4(sp)
+            inc 4(sp)
+            br NAend
+
+NAsht:      mov r1, 4(sp)
+NAend:      mov (sp)+, r1
+            rts pc
+
+
+finish: halt
+
+.even
+CMDLINE: .ascii <abcdef&@>
