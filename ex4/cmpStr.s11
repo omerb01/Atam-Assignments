@@ -1,0 +1,39 @@
+
+.=torg+1000
+main: mov pc, sp
+      tst -(sp)
+      mov #bla, -(sp)
+      jsr r2, cmpStr
+      tcmp:   .ascii <Yeswecan&>
+      .even
+      tst (sp)+
+      halt
+
+bla:    .ascii <YeswEcan&>
+
+.=torg + 2000
+.even
+; receives the following stack:
+; return address
+; string to compare
+; output:
+; 1/0
+cmpStr:   mov r1, -(sp)
+          mov r2, r1
+CSequal:  cmpb (r1)+, @4(sp)
+          bne CSnequal
+          inc 4(sp)
+          cmpb (r1), #'&
+          beq CSexit
+          br CSequal
+
+CSnequal:    mov #0, 4(sp)
+          br CSend
+CSexit:
+          mov #1, 4(sp)
+          br CSend
+
+CSend:    mov r1, r2
+          add #2, r2
+          mov (sp)+, r1
+          rts r2
