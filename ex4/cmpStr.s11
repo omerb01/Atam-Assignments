@@ -27,10 +27,10 @@ CSequal:  cmpb (r1)+, @4(sp)
           beq CSexit
           br CSequal
 
-CSnequal:    mov #0, 4(sp)
+CSnequal:    mov #1, 4(sp)
           br CSend
 CSexit:
-          mov #1, 4(sp)
+          mov #0, 4(sp)
           br CSend
 
 CSend:    mov r1, r2
