@@ -5,17 +5,20 @@ tpb = 177566
 
 .= torg + 1000
 main: mov #main, sp
-      clr -(sp)
+      clr -(sp)   ;space for output
+      mov #CMDLINE, -(sp)
       jsr pc, nextArgCmd
       tst (sp)+
       jmp finish
 
 ; Recevies the following stack:
+
 ; return address
-; empty space for address
+; recevied string
+; empty space for new string output
 
 nextArgCmd: mov r1, -(sp)
-            mov #CMDLINE, r1
+            mov 4(sp), r1
 
 NAloop:     cmpb (r1), #'&
             beq NAamper
@@ -23,11 +26,11 @@ NAloop:     cmpb (r1), #'&
             beq NAsht
             inc r1
             br NAloop
-NAamper:    mov r1, 4(sp)
+NAamper:    mov r1, 6(sp)
             inc 4(sp)
             br NAend
 
-NAsht:      mov r1, 4(sp)
+NAsht:      mov r1, 6(sp)
 NAend:      mov (sp)+, r1
             rts pc
 
