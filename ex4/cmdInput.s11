@@ -45,7 +45,45 @@ cmdPrtCR:     bit #200, tps
               mov #'\r, tpb
               movb #'&, @10(sp)     ; 10(sp)=cmd's address
               inc 10(sp)
+              jsr pc, parseCmd
   ;;;;;;;;; FUNCTIONS CALLS ;;;;;;;;;;;;
+
+chkEncode:    mov #CMDLINE, -(sp)
+              jsr r2, cmpStr
+              .ascii <encode&>
+              .even
+              mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+              cmp r2, #1
+              beq chkDecode
+              ;;;;;; ENCODE CALL
+
+chkDecode:    mov #CMDLINE, -(sp)
+              jsr r2, cmpStr
+              .ascii <decode&>
+              .even
+              mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+              cmp r2, #1
+              beq chkCrack
+              ;;;;;;;; DECODE CALL
+
+chkCrack:    mov #CMDLINE, -(sp)
+              jsr r2, cmpStr
+              .ascii <crack&>
+              .even
+              mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+              cmp r2, #1
+              beq chkSetKey
+              ;;;;;;;; CRACK CALL
+
+chkSetKey:    mov #CMDLINE, -(sp)
+              jsr r2, cmpStr
+              .ascii <setKey&>
+              .even
+              mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+              cmp r2, #1
+              beq chkSetHash
+              ;;;;;;;; SETKEY CALL
+
               br cmdIpEnd
 
 cmdInpUpdate: movb r1, @10(sp)     ; 10(sp)=cmd's address
@@ -73,7 +111,87 @@ cmdIpEnd:     mov (sp)+, r2
               mov (sp)+, r1
               rti
 
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+; receives the following stack:
+; return address
+; string to compare
+; output:
+; 1/0
+cmpStr:   mov r1, -(sp)
+          mov r2, r1
+CSequal:  cmpb (r1)+, @4(sp)
+          bne CSend
+          inc 4(sp)
+          cmpb (r1), #'&
+          beq CSexit
+          br CSequal
+
+CSend:    mov #0, 4(sp)
+          mov (sp)+, r1
+          rts r2
+CSexit:
+          mov #1, 4(sp)
+          mov (sp)+, r1
+          rts r2
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Recevies the following stack:
+; return address
+; empty space for address
+
+nextArgCmd: mov r1, -(sp)
+            mov #CMDLINE, r1
+
+NAloop:     cmpb (r1), #'&
+            beq NAamper
+            cmpb (r1), #'@
+            beq NAsht
+            inc r1
+            br NAloop
+NAamper:    mov r1, 4(sp)
+            inc 4(sp)
+            br NAend
+
+NAsht:      mov r1, 4(sp)
+NAend:      mov (sp)+, r1
+            rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+parseCmd:
+      mov r0, -(sp)
+      mov r1, -(sp)
+      mov #TEMPCMD, r0
+      mov #CMDLINE, r1
+
+                cmpb (r0), #40
+                beq prsCmdClr
+
+prsCmdPrcs:     cmpb (r0), #'&
+                beq prsCmdFinish
+                cmpb (r0), #40         ;40=" "
+                beq prsCmdSpace
+                movb (r0)+, (r1)+
+                br prsCmdPrcs
+
+prsCmdSpace:    inc r0
+                movb #'&, (r1)+
+prsCmdClr:      cmpb (r0), #'&
+                beq prsCmdFinish
+                cmpb (r0), #40         ;40=" "
+                bne prsCmdPrcs
+                inc r0
+                br prsCmdClr
+
+prsCmdFinish:   movb #'@, (r1)
+                mov (sp)+, r1
+                mov (sp)+, r0
+                rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 finish: halt
 TEMPCMD: .blkw 1000
+CMDLINE: .blkw 1000

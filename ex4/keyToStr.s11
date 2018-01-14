@@ -1,0 +1,40 @@
+.= torg + 1000
+main: mov #main, sp
+
+      tst -(sp)
+      jsr pc, keyToStr
+      tst (sp)+
+      jmp finish
+
+keyToStr: ; 2(sp) - OUTPUT key str length
+      mov r0, -(sp)
+      mov r1, -(sp)
+      mov r2, -(sp)
+
+              mov #Key, r0
+              mov #KeyStr, r1
+              clr r2
+
+keyStrPrcs:   cmp (r0), #-1
+              beq keyStrFinish
+              movb (r0), (r1)+
+              inc r2
+              tst (r0)+
+              cmp (r0), #0
+              beq keyStrFinish
+              mov (r0), r0
+              br keyStrPrcs
+
+keyStrFinish: mov #'&, (r1)
+              mov r2, 10(sp)        ; 10(sp)=OUTPUT
+              mov (sp)+, r2
+              mov (sp)+, r1
+              mov (sp)+, r0
+              rts pc
+
+finish: halt
+Key:
+node1: .word 3, node2
+node2: .word 0, node3
+node3: .word -1, 0
+KeyStr: .blkw 50

@@ -6,7 +6,7 @@ main: mov pc, sp
       jsr r2, cmpStr
       tcmp:   .ascii <Yeswecan&>
       .even
-      cmp (sp)+, (sp)+
+      tst (sp)+
 bla:    .ascii <Yeswecan&>
       .even
       halt

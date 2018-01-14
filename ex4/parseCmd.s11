@@ -1,0 +1,40 @@
+.= torg + 1000
+main: mov #main, sp
+
+      jsr pc, parseCmd
+      jmp finish
+
+parseCmd:
+      mov r0, -(sp)
+      mov r1, -(sp)
+      mov #TEMPCMD, r0
+      mov #CMDLINE, r1
+
+                cmpb (r0), #40
+                beq prsCmdClr
+
+prsCmdPrcs:     cmpb (r0), #'&
+                beq prsCmdFinish
+                cmpb (r0), #40         ;40=" "
+                beq prsCmdSpace
+                movb (r0)+, (r1)+
+                br prsCmdPrcs
+
+prsCmdSpace:    inc r0
+                movb #'&, (r1)+
+prsCmdClr:      cmpb (r0), #'&
+                beq prsCmdFinish
+                cmpb (r0), #40         ;40=" "
+                bne prsCmdPrcs
+                inc r0
+                br prsCmdClr
+
+prsCmdFinish:   movb #'@, (r1)
+                mov (sp)+, r1
+                mov (sp)+, r0
+                rts pc
+
+finish: halt
+TEMPCMD: .ascii<     abcd      4     10   &>
+.even
+CMDLINE: .blkw 50

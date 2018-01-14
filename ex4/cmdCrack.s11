@@ -92,8 +92,53 @@ crkLoop2: wait
       jsr pc, crkSystem
       add #12, sp
 
+      tst -(sp)
+      jsr pc, keyToStr
+      mov (sp)+, r5          ; r5=key str length
+
+      mov r5, -(sp)               ; r5=key str length
+      mov #KeyStr, -(sp)          ; KeyStr to convert from octal to ascii
+      jsr pc, ocToAsci
+      cmp (sp)+, (sp)+
+
+      mov #newLinePrmt, -(sp)
+      mov #KeyStr, -(sp)
+      mov #crkPrmt3, -(sp)
+      mov #3, -(sp)
+      jsr pc, printText
+      cmp (sp)+, (sp)+
+      cmp (sp)+, (sp)+
+
 mov (sp)+, r5
 rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+keyToStr: ; 2(sp) - OUTPUT key str length
+      mov r0, -(sp)
+      mov r1, -(sp)
+      mov r2, -(sp)
+
+              mov #Key, r0
+              mov #KeyStr, r1
+              clr r2
+
+keyStrPrcs:   cmp (r0), #-1
+              beq keyStrFinish
+              movb (r0), (r1)+
+              inc r2
+              tst (r0)+
+              cmp (r0), #0
+              beq keyStrFinish
+              mov (r0), r0
+              br keyStrPrcs
+
+keyStrFinish: mov #'&, (r1)
+              mov r2, 10(sp)        ; 10(sp)=OUTPUT
+              mov (sp)+, r2
+              mov (sp)+, r1
+              mov (sp)+, r0
+              rts pc
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -918,6 +963,8 @@ nRows: .byte 4
 .even
 crkPrmt1: .ascii<Please enter image\n\r&>
 crkPrmt2: .ascii<\n\rPlease enter encoded image\n\r&>
+crkPrmt3: .ascii<\n\rThe key is: &>
+newLinePrmt: .ascii<\n\r&>
 Hash:  .byte  17,16,15,14,13,12,11,10,7,6,5,4,3,2,1,0
 .even
 KeyUse:
@@ -926,6 +973,7 @@ KeyUse:
   node6:  .word -1, 0
 .even
 Key: .blkw 50
+KeyStr: .blkw 50
 .even
 IMG1: .blkw 1000
 IMG2: .blkw 1000
