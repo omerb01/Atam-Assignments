@@ -1,0 +1,45 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+
+.= torg + 1000
+main: mov #main, sp
+      clr -(sp)   ;space for output
+      mov #CMDLINE, -(sp)
+      jsr pc, prmToOcCmd
+      tst (sp)+
+      jmp finish
+
+; Recevies the following stack:
+; return address
+; number string
+; empty space for octal num
+prmToOcCmd: mov r1, -(sp)     ;string iterator
+            mov r3, -(sp)
+            mov #10, -(sp)
+            mov 10(sp), r1
+
+prmLoop:    clr r3
+            movb (r1), r3
+            sub #60, r3
+            add r3, 12(sp)
+            inc r1
+            cmpb   (r1), #'&
+            beq prmFinish
+            dec r1
+            mov 12(sp), r3
+            mul (sp), r3
+            mov r3, 12(sp)
+            inc r1
+            br prmLoop
+prmFinish:
+            tst (sp)+
+            mov (sp)+, r3
+            mov (sp)+, r1
+            rts pc
+
+finish: halt
+
+.even
+CMDLINE: .ascii <1234&>
