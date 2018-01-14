@@ -6,12 +6,10 @@ main: mov pc, sp
       jsr r2, cmpStr
       tcmp:   .ascii <Yeswecan&>
       .even
-      cmp (sp)+, (sp)+
-bla:    .ascii <Yeswecan&>
-      .even
+      tst (sp)+
       halt
 
-
+bla:    .ascii <YeswEcan&>
 
 .=torg + 2000
 .even
@@ -23,16 +21,19 @@ bla:    .ascii <Yeswecan&>
 cmpStr:   mov r1, -(sp)
           mov r2, r1
 CSequal:  cmpb (r1)+, @4(sp)
-          bne CSend
+          bne CSnequal
           inc 4(sp)
           cmpb (r1), #'&
           beq CSexit
           br CSequal
 
-CSend:    mov #0, 4(sp)
-          mov (sp)+, r1
-          rts r2
+CSnequal:    mov #0, 4(sp)
+          br CSend
 CSexit:
           mov #1, 4(sp)
+          br CSend
+
+CSend:    mov r1, r2
+          add #2, r2
           mov (sp)+, r1
           rts r2
