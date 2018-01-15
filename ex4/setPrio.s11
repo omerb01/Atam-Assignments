@@ -1,0 +1,36 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+
+.=torg+1000
+main: mov pc, sp
+      mov #inp, @#60
+      mov #400, @#62
+      mov #2, -(sp)
+      jsr pc, setPrio
+      cmp (sp)+, (sp)+
+
+      mov #101, @#tks
+
+a:    br a
+
+      halt
+
+; The state of the stack when enters the proc:
+; return address
+; priority level
+
+setPrio:  mov r1, -(sp)
+          mov 4(sp), r1
+          ash #6, r1
+          mov r1, 4(sp)
+          mov (sp)+, r1
+          mov 2(sp), -(sp)
+          mov 2(sp), -(sp)
+          rti
+
+inp:      mov #1, @#tps
+          mov @#tkb, @#tpb
+          inc @#tks
+          rti
