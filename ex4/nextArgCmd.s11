@@ -12,7 +12,6 @@ main: mov #main, sp
       jmp finish
 
 ; Recevies the following stack:
-
 ; return address
 ; recevied string
 ; empty space for new string output
@@ -27,7 +26,7 @@ NAloop:     cmpb (r1), #'&
             inc r1
             br NAloop
 NAamper:    mov r1, 6(sp)
-            inc 4(sp)
+            inc 6(sp)
             br NAend
 
 NAsht:      mov r1, 6(sp)
@@ -37,5 +36,5 @@ NAend:      mov (sp)+, r1
 
 finish: halt
 
-.even
+  .even
 CMDLINE: .ascii <abcdef&@>
