@@ -18,14 +18,14 @@ halt
 ; this function received the stack in the following order:
 ; return address
 ; address pointing to hash
-cmdSetHash:   mov #16, -(sp)
+cmdSetHash:   mov #20, -(sp)
               mov 4(sp), -(sp)
               jsr pc, asciToOc    ;convert Hash to octal
               cmp (sp)+, (sp)+
 
               mov r2, -(sp)
               mov r3, -(sp)
-              mov #16, -(sp)
+              mov #20, -(sp)
               mov #Hash, r2
               mov 10(sp), r3
 SHupdateHash: movb (r3)+, (r2)+
@@ -35,7 +35,7 @@ SHupdateHash: movb (r3)+, (r2)+
               mov (sp)+, r2
               mov (sp)+, r3
 
-              mov #16, -(sp)
+              mov #20, -(sp)
               mov 4(sp), -(sp)
               jsr pc, ocToAsci    ;convert Hash to octal
               cmp (sp)+, (sp)+
@@ -47,11 +47,13 @@ SHupdateHash: movb (r3)+, (r2)+
               jsr pc, printText
               cmp (sp)+, (sp)+
               cmp (sp)+, (sp)+
-SHstr:        .ascii        <Hash function set to &>
-SHend:        .ascii        <\n\r&>
 .even
               rts pc
 
+
+
+SHstr:        .ascii        <Hash function set to &>
+SHend:        .ascii        <\n\r&>
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .even
@@ -141,6 +143,6 @@ toAsciFinish: mov (sp)+, r3
             rts pc
 
 
-Fash:       .ascii <23456789abcdef01&>
+Fash:       .ascii <0123456789abcdef&>
 .even
 Hash:       .blkw 10
