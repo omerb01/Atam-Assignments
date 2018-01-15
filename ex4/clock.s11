@@ -1,0 +1,152 @@
+tks = 177560
+tkb = 177562
+tps = 177564
+tpb = 177566
+lcs = 177546
+.=torg +1000
+main: mov #main, sp
+
+      mov #inp, 60
+      mov #400, 62
+      mov #clock, 100
+      mov #100, 102
+      mov #101, tks
+      mov #100, lcs
+
+l:      wait
+        br l
+
+isec:   inc @#seconds
+        clr @#timepass
+        br l
+
+clock:  inc @#timepass                ;clock procedure
+        cmp @#timepass, @#rate
+        beq isec
+        rti
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; #str -> command name, should be delivered via adderss or other method
+; change the funtion below to procedure from interuppt
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+inp:      mov #0, @#lcs             ;should be removed
+          mov r2, -(sp)
+          mov r3, -(sp)
+          mov #str1, -(sp)          ;prints command name
+          mov #1, -(sp)
+          jsr pc, printText
+          cmp (sp)+, (sp)+
+
+          mov #str2, -(sp)          ;prints "completed in"
+          mov #1, -(sp)
+          jsr pc, printText
+          cmp (sp)+, (sp)+
+
+          mov @#seconds, -(sp)        ;prints seconds in format "...x.x"
+          jsr pc, numPrintAsci
+          tst (sp)+
+          mov #'., @#tpb
+ib_w:     tstb @#tps
+          bpl ib_w
+          mov @#rate, r2
+          sub @#timepass, r2
+          mov r2, r3
+          clr r2
+          div #144, r2
+          add #60, r2
+          mov r2, @#tpb
+qb_w:     tstb @#tps
+          bpl qb_w
+
+          mov #str3, -(sp)          ;prints "sec"
+          mov #1, -(sp)
+          jsr pc, printText
+          cmp (sp)+, (sp)+
+          mov (sp)+, r3
+          mov (sp)+, r2
+          jsr pc, stop
+          rti
+
+stop:     halt
+          ;clr @#seconds
+          ;clr @#timepass
+
+; receives:
+; return address
+; empty space
+; the number to print
+numPrintAsci:  mov #23420, -(sp)   ; devider for digits seperation
+            mov 4(sp), -(sp)    ; push the number to convert again
+            mov r2, -(sp)       ; temp
+            mov r3, -(sp)
+devide:     clr r2
+            cmp 4(sp), #0
+            beq nfinish
+            mov 4(sp), r3        ;move number to r2
+            div 6(sp), r2
+            tst r2
+            beq keepdevide
+printnum:   add #60, r2
+            movb r2, @#tpb
+nb_w:       tstb @#tps
+            bpl nb_w
+            mov r3, 4(sp)
+            br devide
+keepdevide: mov 6(sp), r3
+            clr r2
+            div #12, r2
+            mov r2, 6(sp)
+            cmp 6(sp), #1
+            beq nclear
+            br devide
+nclear:     mov 4(sp), r2
+            clr 4(sp)
+            br printnum
+
+
+nfinish:    mov (sp)+, r3
+            mov (sp)+, r2
+            cmp (sp)+, (sp)+
+            rts pc
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~``
+
+; recevies num of args to print, then the string addresses
+; Stack:
+; - return address
+; - num of args
+; - addresses
+
+printText:  mov r0, -(sp)
+            tst -(sp)      ; index for current string to print in the stack
+            mov r1,-(sp)      ; string iterator
+            mov #12, 2(sp)   ; advance the index to the first string
+            mov 10(sp), r0  ; r0 = num of args
+PTprintString:
+            clr r1
+            add 2(sp), r1
+            add #2, 2(sp)     ; point to next string
+            add sp, r1        ; r1 will point to the current string to print in the stack
+
+PTprintLoop:  tstb @#tps
+            bpl PTprintLoop
+            cmpb @(r1), #'&
+            beq PTstringEnd
+            movb @(r1), @#tpb
+            inc (r1)
+            br PTprintLoop
+
+PTstringEnd:  sob r0, PTprintString
+
+            mov (sp)+, r1
+            tst (sp)+
+            mov (sp)+, r0
+            rts pc
+
+
+str2: .ascii< completed in &>
+.even
+str1: .ascii<crack&>
+str3: .ascii<sec&>
+timepass: .word 0                   ;global variable
+seconds: .word 0                ;global variable
+rate: .word 1000.               ;provided by the test
