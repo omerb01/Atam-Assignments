@@ -35,7 +35,7 @@ IMG:    .byte	 1,  2,  1,  2, 0,   1,   2,    3
 
 printImg: mov 2(sp), -(sp)
           mov 6(sp), -(sp)
-          mov (r1), -(sp)         ;IMG iterator
+          mov r1, -(sp)         ;IMG iterator
           mov 14(sp), r1
           bit #1, @#tps
 PIstepCol:
@@ -65,10 +65,9 @@ PInewcrline:
           dec 4(sp)               ;continues to the next line
           bne PIstepCol
 
-          tst (sp)+
+          mov (sp)+, r1
           cmp (sp)+, (sp)+
           rts pc
-
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 
