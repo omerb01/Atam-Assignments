@@ -23,12 +23,9 @@ IMG:    .byte	 1,  2,  1,  2, 0,   1,   2,    3
 .=torg + 2000
 .even
 ; receives the following stack:
-;temp r1
-;columns
-;rows
 ; return address
-; amount of rows
-; amount of columns
+; amount of nCols
+; amount of nRows
 ; Img address
 ; output:
 ; prints the image in HEX format
