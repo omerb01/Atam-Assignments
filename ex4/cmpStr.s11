@@ -1,15 +1,14 @@
-
 .=torg+1000
 main: mov pc, sp
       tst -(sp)
       mov #bla, -(sp)
       jsr r2, cmpStr
-      tcmp:   .ascii <Yeswecan&>
+      tcmp:   .ascii <e&>
       .even
       tst (sp)+
       halt
 
-bla:    .ascii <YeswEcan&>
+bla:    .ascii <decode&>
 
 .=torg + 2000
 .even
@@ -22,7 +21,7 @@ cmpStr:   mov r1, -(sp)
           mov r2, r1
 CSequal:  cmpb (r1)+, @4(sp)
           bne CSnequal
-          inc 4(sp)
+          inc 4(sp)               ;advances string to compare to
           cmpb (r1), #'&
           beq CSexit
           br CSequal
@@ -33,7 +32,31 @@ CSexit:
           mov #0, 4(sp)
           br CSend
 
-CSend:    mov r1, r2
-          add #2, r2
+CSend:    mov r2, -(sp)
+          clr -(sp)
+          jsr pc, strlen
+          add (sp), r2
+          bit #1, r2
+          beq CSfin
+          inc r2
+CSfin:    cmp (sp)+, (sp)+
           mov (sp)+, r1
           rts r2
+
+
+; recevies the following stack (HOW THE STACK LOOKS WHEN ENTERS THE PROC):
+; return address
+; len of string after calculation (enters empty)
+; string itself (addr)
+
+strlen: mov r1, -(sp)
+        mov 6(sp), r1       ;4(sp) = string
+        clr 4(sp)
+strloop:  cmpb (r1), #'&
+          beq strFin
+          inc 4(sp)         ;6(sp) = strlen counter
+          inc r1
+          br strloop
+strFin:   inc 4(sp)         ;counts the '&'
+          mov (sp)+, r1
+          rts pc

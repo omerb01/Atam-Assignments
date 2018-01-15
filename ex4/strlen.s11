@@ -1,0 +1,26 @@
+.=torg+1000
+main: mov pc, sp
+      tst -(sp)
+      mov #bla, -(sp)
+      jsr pc, strlen
+      cmp (sp)+, (sp)+
+      halt
+
+bla:    .ascii <decode&>
+.even
+; recevies the following stack (HOW THE STACK LOOKS WHEN ENTERS THE PROC):
+; return address
+; string itself (addr)
+; len of string after calculation (enters empty)
+
+strlen: mov r1, -(sp)
+        mov 4(sp), r1       ;4(sp) = string
+        clr 6(sp)
+strloop:  cmpb (r1), #'&
+          beq strFin
+          inc 6(sp)         ;6(sp) = strlen counter
+          inc r1
+          br strloop
+strFin:   inc 6(sp)       ;counts the '&'
+          mov (sp)+, r1
+          rts pc
