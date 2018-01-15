@@ -29,7 +29,7 @@ cmdDec: ; 2(sp) - nCols, 4(sp) - nRows
       movb @4(sp), r5         ; 4(sp) = nCols
       mov r4, -(sp)
       clr r4
-      movb @6(sp), r4    ; 6(sp) = nRows
+      movb @10(sp), r4    ; 10(sp) = nRows
       mul r4, r5
       mov (sp)+, r4
 
@@ -381,15 +381,15 @@ toOcFinish: mov (sp)+, r3
 
 ; receives the following stack:
 ; return address
-; amount of rows
-; amount of columns
+; amount of COLUMNS
+; amount of ROWS
 ; Img address
 ; output:
 ; prints the image in HEX format
 
-printImg: mov 2(sp), -(sp)
-          mov 6(sp), -(sp)
-          mov (r1), -(sp)         ;IMG iterator
+printImg: mov 4(sp), -(sp)
+          mov 4(sp), -(sp)
+          mov r1, -(sp)         ;IMG iterator
           mov 14(sp), r1
           bit #1, @#tps
 PIstepCol:
@@ -415,11 +415,11 @@ PInewcrline:
           bpl PInewcrline
           movb #'\r, @#tpb
 
-          mov 12(sp), 2(sp)
+          mov 10(sp), 2(sp)
           dec 4(sp)               ;continues to the next line
           bne PIstepCol
 
-          tst (sp)+
+          mov (sp)+, r1
           cmp (sp)+, (sp)+
           rts pc
 

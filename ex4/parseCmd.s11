@@ -7,34 +7,44 @@ main: mov #main, sp
 parseCmd:
       mov r0, -(sp)
       mov r1, -(sp)
+      mov r2, -(sp)
       mov #TEMPCMD, r0
       mov #CMDLINE, r1
+      clr r2
 
                 cmpb (r0), #40
                 beq prsCmdClr
 
-prsCmdPrcs:     cmpb (r0), #'&
+prsCmdPrcs:     cmp r2, #50
+                bhis prsCmdFinish
+                cmpb (r0), #'&
                 beq prsCmdFinish
                 cmpb (r0), #40         ;40=" "
                 beq prsCmdSpace
+                inc r2
                 movb (r0)+, (r1)+
                 br prsCmdPrcs
 
 prsCmdSpace:    inc r0
                 movb #'&, (r1)+
-prsCmdClr:      cmpb (r0), #'&
+prsCmdClr:      cmp r2, #50
+                bhis prsCmdFinish
+                cmpb (r0), #'&
                 beq prsCmdFinish
                 cmpb (r0), #40         ;40=" "
                 bne prsCmdPrcs
+                inc r2
                 inc r0
                 br prsCmdClr
 
-prsCmdFinish:   movb #'@, (r1)
+prsCmdFinish:   movb #'&, (r1)+
+                movb #'@, (r1)
+                mov (sp)+, r2
                 mov (sp)+, r1
                 mov (sp)+, r0
                 rts pc
 
 finish: halt
-TEMPCMD: .ascii<     abcd      4     10   &>
+TEMPCMD: .ascii<     a   bbbb&>
 .even
 CMDLINE: .blkw 50

@@ -5,11 +5,12 @@ tpb = 177566
 
 .=torg+1000
 main: mov pc, sp
+      tst -(sp)
       mov #inp, @#60
       mov #400, @#62
       mov #2, -(sp)
       jsr pc, setPrio
-      cmp (sp)+, (sp)+
+      tst (sp)+
 
       mov #101, @#tks
 
@@ -23,11 +24,13 @@ a:    br a
 
 setPrio:  mov r1, -(sp)
           mov 4(sp), r1
-          ash #6, r1
+          ash #5, r1
+
+          mov (sp), -(sp)
+          mov 4(sp), 2(sp)
           mov r1, 4(sp)
+
           mov (sp)+, r1
-          mov 2(sp), -(sp)
-          mov 2(sp), -(sp)
           rti
 
 inp:      mov #1, @#tps
