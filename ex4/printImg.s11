@@ -5,8 +5,8 @@ tpb = 177566
 main: mov pc, sp
       tst -(sp)
       mov #IMG, -(sp)
-      mov #10, -(sp)
-      mov #4, -(sp)
+      mov #4, -(sp)               ;NROWS
+      mov #10, -(sp)              ;NCOLUMNS
       jsr pc, printImg
 
       tst (sp)+
@@ -20,18 +20,20 @@ IMG:    .byte	 1,  2,  1,  2, 0,   1,   2,    3
 
 
 
+
+
 .=torg + 2000
 .even
 ; receives the following stack:
 ; return address
-; amount of nCols
-; amount of nRows
+; amount of COLUMNS
+; amount of ROWS
 ; Img address
 ; output:
 ; prints the image in HEX format
 
-printImg: mov 2(sp), -(sp)
-          mov 6(sp), -(sp)
+printImg: mov 4(sp), -(sp)
+          mov 4(sp), -(sp)
           mov r1, -(sp)         ;IMG iterator
           mov 14(sp), r1
           bit #1, @#tps
@@ -58,13 +60,14 @@ PInewcrline:
           bpl PInewcrline
           movb #'\r, @#tpb
 
-          mov 12(sp), 2(sp)
+          mov 10(sp), 2(sp)
           dec 4(sp)               ;continues to the next line
           bne PIstepCol
 
           mov (sp)+, r1
           cmp (sp)+, (sp)+
           rts pc
+
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 
