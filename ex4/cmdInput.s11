@@ -10,26 +10,28 @@ lcs = 177546
 .= torg + 2000
 main: mov #main, sp
 
-      mov #cmdPrmt, -(sp)
-      mov #mainPrmt, -(sp)
-      mov #2, -(sp)
+      mov #cmdPrmt, -(sp)         ; cmdPrmt="$ "
+      mov #mainPrmt, -(sp)        ; mainPrmt="Welcome!"
+      mov #2, -(sp)               ; num of strings to print
       jsr pc, printText
       cmp (sp)+, (sp)+
       tst (sp)+
 
-      mov #TEMPCMD, CMDIT
+      mov #TEMPCMD, CMDIT         ; init TEMPCMD dynamic end address
       bis #1, tps
-      mov #101, tks
+      mov #101, tks               ; turning on keyboard interupt
 
-loop: wait
-      bit #1, tks
+loop: wait                        ; waiting for keyboard interupt
+      bit #1, tks                 ; if tks is down than end the program ("quit" command)
       bne loop
 
       jmp finish
 
-cmdInput: ; using r0 for chars iterator on TEMPCMD
+cmdInput: ; using CMDIT for chars iterator on TEMPCMD
+; this is the main program which gets chars and stores them in TEMPCMD
+; after analizing the command, the relevant subrutine is called
 
-      cmpb Ctrl, #0
+      cmpb Ctrl, #0       ; check if current state is "commands input"
       beq pass2
       jmp imgInput
 pass2:
@@ -37,34 +39,34 @@ pass2:
       mov r2, -(sp)
 
       clr r1
-      movb tkb, r1
+      movb tkb, r1            ; gets the given char and stores it in r1
 
               cmp r1, #'\b
               bne cmdInpEnter
-              cmp CMDIT, #TEMPCMD      ; r0=dymanic cmd's addres
+              cmp CMDIT, #TEMPCMD      ; CMDIT=dymanic cmd's addres
               beq cmdInpFinish
               dec CMDIT
-              movb #0, @CMDIT       ; r0=dymanic cmd's Address
+              movb #0, @CMDIT       ; CMDIT=dymanic cmd's Address
               br cmdInpPrint
 
 cmdInpEnter:  cmp r1, #'\r        ; is Enter?
               bne cmdInpUpdate
-cmdPrtLF:     bit #200, tps
+cmdPrtLF:     bit #200, tps         ; prints new line if an Enter was given
               beq cmdPrtLF
               mov #'\n, tpb
 cmdPrtCR:     bit #200, tps
               beq cmdPrtCR
               mov #'\r, tpb
-              movb #'&, @CMDIT     ; r0=cmd's address
+              movb #'&, @CMDIT     ; set "&" at the end of the given command
               inc CMDIT
               jsr pc, parseCmd      ; transfer all data from TEMPCMD to CMDLINE without spaces in format: "encode&4&10&@"
-              jmp FUNCS
+              jmp FUNCS             ; all functions are treated at FUNCS label
 
-cmdInpUpdate: movb r1, @CMDIT     ; r0=cmd's address
+cmdInpUpdate: movb r1, @CMDIT     ; CMDIT=dynamic cmd's address
               inc CMDIT
               br cmdInpPrint
 
-cmdIpBS1:     mov #40, r1         ; 40=" "
+cmdIpBS1:     mov #40, r1         ; if Backspace was given, than prints prints \b than " " than \b again
               bit #200, tps
               beq cmdIpBS1
               mov r1, tpb
@@ -81,76 +83,77 @@ cmdInpPrint:  bit #200, tps
               br cmdIpBS1
 
 clrFinishCmd: mov #TEMPCMD, CMDIT        ; init TEMPCMD pointer to the beggining after command has been proccessed
-finLoop1:     bit #200, tps
+finLoop1:     bit #200, tps              ; for getting the next command
               beq finLoop1
               mov #'$, tpb
-finLoop2:     bit #200, tps
+finLoop2:     bit #200, tps               ; prints "$ " in the begging of the line before letting the user call another command
               beq finLoop2
               mov #40, tpb
 cmdInpFinish: mov #101, tks
-              cmpb Ctrl, #-1
-              bne cmdIpEnd
+              cmpb Ctrl, #-1              ; if Ctrl is -1 than do "rti" without restoring r1, r2 because is was restored once before
+              bne cmdIpEnd                ; Ctrl=-1 when a sub complex command is ended: encode, decode
               movb #0, Ctrl
               rti
 cmdIpEnd:     mov (sp)+, r2
               mov (sp)+, r1
               rti
 
-  ;;;;;;;;; FUNCTIONS CALLS ;;;;;;;;;;;;
+  ;;;;;;;;; FUNCTIONS CALLS: ;;;;;;;;;;;;
 
 FUNCS:
 chkEncode:    mov #CMDLINE, -(sp)
-              jsr r2, cmpStr
+              jsr r2, cmpStr        ; checks if the given command is "encode"
               .ascii <encode&>
               .even
               mov (sp)+, r2         ; (sp)=OUTPUT 1/0
               cmp r2, #1
-              beq chkDecode
+              beq chkDecode         ; if not "encode" than check if "decode"
 
-        ;;;;;; ENCODE CALL
+        ;;;;;; ENCODE CALL:
 
               tst -(sp)
               mov #CMDLINE, -(sp)
-              jsr pc, nextArgCmd
+              jsr pc, nextArgCmd      ; gets the next word seperated by " " in the given command
               tst (sp)+
               mov (sp)+, r2          ; r2 = first parameter address
 
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
-              jsr pc, prmToOcCmd
+              jsr pc, prmToOcCmd      ; converts parameter from ascii to octal num
               tst (sp)+
               movb (sp)+, IMG3Rows
 
               tst -(sp)
               mov r2, -(sp)          ; r2 = first parameter address
-              jsr pc, nextArgCmd
+              jsr pc, nextArgCmd    ; gets the next word seperated by " " in the given command
               tst (sp)+
               mov (sp)+, r2          ; r2 = second parameter address
 
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
-              jsr pc, prmToOcCmd
+              jsr pc, prmToOcCmd      ; converts parameter from ascii to octal num
               tst (sp)+
               movb (sp)+, IMG3Cols
 
-              mov #2, -(sp)
-              jsr pc, setPrio        ; change priority level from 4 to 2
-              tst (sp)+
+              ;mov #2, -(sp)
+              ;jsr pc, setPrio        ; change priority level from 4 to 2
+              ;tst (sp)+
 
-              mov #encPrmt1, -(sp)
+              mov #encPrmt1, -(sp)    ; encPrmt1="Please enter image to encode"
               mov #1, -(sp)
               jsr pc, printText
               cmp (sp)+, (sp)+
 
-              mov #IMG3Cols, COLSADR
-              mov #IMG3Rows, ROWSADR
+              mov #IMG3Cols, COLSADR    ; init COLSADR and ROWSADR for imgInput to know
+              mov #IMG3Rows, ROWSADR    ; dimentions the current given IMG
 
               ;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov #TEMPIMG, IMGIT
-              movb #1, Ctrl
-              jmp cmdInpFinish
+              mov #TEMPIMG, IMGIT         ; init IMG iterator
+              movb #1, Ctrl               ; sets Ctrl symbolize encode proccess
+              jmp cmdInpFinish            ; end interupt, next call will be at imgInput
               ;;;;;;;;;;;;;;;;;;;;;;;;;
 
+                                          ; gets here when finished to get all bytes in the image
 finEnc:       mov r3, -(sp)          ; environment safty
               mov r4, -(sp)
               clr r3
@@ -161,76 +164,77 @@ finEnc:       mov r3, -(sp)          ; environment safty
               ash #8, r3
               mov r3, -(sp)           ; r3=nRows
               movb r4, (sp)           ; r4=nCols
-              mov sp, -(sp)
+              mov sp, -(sp)           ; push nRows and nCols to stack and transfer the address of it to cmdEnc
               inc (sp)
               mov sp, -(sp)
               add #2, (sp)
-              jsr pc, cmdEnc          ; pushed nRows and nCols by address in stack
+              jsr pc, cmdEnc          ; start Encode proccess
               cmp (sp)+, (sp)+
               tst (sp)+
 
-              mov #4, -(sp)
-              jsr pc, setPrio        ; change priority level from 2 to 4
-              tst (sp)+
+              ;mov #4, -(sp)
+              ;jsr pc, setPrio        ; change priority level from 2 to 4
+              ;tst (sp)+
 
               mov (sp)+, r4            ; restore registers from outside
               mov (sp)+, r3
 
-              movb #-1, Ctrl
+              movb #-1, Ctrl           ; Ctrl=-1 when decode or encode in ended
               jmp clrFinishCmd
 
 chkDecode:    mov #CMDLINE, -(sp)
-              jsr r2, cmpStr
+              jsr r2, cmpStr            ; checks if the given command is "decode"
               .ascii <decode&>
               .even
               mov (sp)+, r2         ; (sp)=OUTPUT 1/0
               cmp r2, #1
-              beq chkHash
+              beq chkHash               ; if not, check if it is "Hash"
 
         ;;;;;; DECODE CALL
 
               tst -(sp)
               mov #CMDLINE, -(sp)
-              jsr pc, nextArgCmd
+              jsr pc, nextArgCmd          ; gets the next word in the given command
               tst (sp)+
               mov (sp)+, r2          ; r2 = first parameter address
 
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
-              jsr pc, prmToOcCmd
+              jsr pc, prmToOcCmd        ; converts the given parameter from ascii to octal num
               tst (sp)+
               movb (sp)+, IMG3Rows           ; r3 = nRows value
 
               tst -(sp)
               mov r2, -(sp)          ; r2 = first parameter address
-              jsr pc, nextArgCmd
+              jsr pc, nextArgCmd    ; gets the next word in the given command
               tst (sp)+
               mov (sp)+, r2          ; r2 = second parameter address
 
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
-              jsr pc, prmToOcCmd
+              jsr pc, prmToOcCmd        ; converts the given parameter from ascii to octal num
               tst (sp)+
               movb (sp)+, IMG3Cols           ; r4 = nCols value
 
-              mov #2, -(sp)
-              jsr pc, setPrio        ; change priority level from 4 to 2
-              tst (sp)+
+              ;mov #2, -(sp)
+              ;jsr pc, setPrio        ; change priority level from 4 to 2
+              ;tst (sp)+
 
-              mov #decPrmt1, -(sp)
+              mov #decPrmt1, -(sp)       ;  decPrmt1="Please enter image to decode"
               mov #1, -(sp)
               jsr pc, printText
               cmp (sp)+, (sp)+
 
-              mov #IMG3Cols, COLSADR
+              mov #IMG3Cols, COLSADR          ; init COLSADR and ROWSADR for imgInput
               mov #IMG3Rows, ROWSADR
 
               ;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov #TEMPIMG, IMGIT
-              movb #2, Ctrl
-              jmp cmdInpFinish
+              mov #TEMPIMG, IMGIT           ; init IMG iterator
+              movb #2, Ctrl                 ; sets Ctrl symbolize decode proccess
+              jmp cmdInpFinish              ; end interupt, next call will be at imgInput
               ;;;;;;;;;;;;;;;;;;;;;;;;;
 
+                                    ; gets here when IMG is ready
 finDec:       mov r3, -(sp)          ; environment safty
               mov r4, -(sp)
               clr r3
@@ -249,193 +253,193 @@ finDec:       mov r3, -(sp)          ; environment safty
               cmp (sp)+, (sp)+
               tst (sp)+
 
-              mov #4, -(sp)
-              jsr pc, setPrio        ; change priority level from 2 to 4
-              tst (sp)+
+              ;mov #4, -(sp)
+              ;jsr pc, setPrio        ; change priority level from 2 to 4
+              ;tst (sp)+
 
               mov (sp)+, r4            ; restore registers from outside
               mov (sp)+, r3
 
-              movb #-1, Ctrl
+              movb #-1, Ctrl           ; Ctrl=-1 when decode or encode in ended
               jmp clrFinishCmd
 
 chkHash:      mov #CMDLINE, -(sp)
-              jsr r2, cmpStr
+              jsr r2, cmpStr          ; checks if the given command is "setHash"
               .ascii <setHash&>
               .even
               mov (sp)+, r2         ; (sp)=OUTPUT 1/0
               cmp r2, #1
-              beq chkKey
+              beq chkKey              ; if not, than check if it is "setKey"
 
         ;;;;;; SETHASH CALL
 
               tst -(sp)
               mov #CMDLINE, -(sp)
-              jsr pc, nextArgCmd
+              jsr pc, nextArgCmd      ; gets the next word in the given command line
               tst (sp)+
               mov (sp)+, r2          ; r2 = first parameter address
 
               mov r2, -(sp)          ; r2 = new Hash str address
-              jsr pc, cmdSetHash
+              jsr pc, cmdSetHash      ; sets Hash label to the given Hash sequence
               tst (sp)+
 
               jmp clrFinishCmd
 
 chkKey:       mov #CMDLINE, -(sp)
-              jsr r2, cmpStr
+              jsr r2, cmpStr          ; chceks if the given command is "setKey"
               .ascii <setKey&>
               .even
               mov (sp)+, r2         ; (sp)=OUTPUT 1/0
               cmp r2, #1
-              beq chkCrack
+              beq chkCrack          ; if not, than check if it is "crack"
 
         ;;;;;; SETKEY CALL
 
               tst -(sp)
               mov #CMDLINE, -(sp)
-              jsr pc, nextArgCmd
+              jsr pc, nextArgCmd        ; gets the next word in the given command line
               tst (sp)+
               mov (sp)+, r2          ; r2 = first parameter address
 
               mov r2, -(sp)          ; r2 = new Key str address
-              jsr pc, cmdSetKey
+              jsr pc, cmdSetKey       ; sets a linked list of nums in "KeyUse" label which represents a key sequence
               tst (sp)+
 
               jmp clrFinishCmd
 
 chkCrack:     mov #CMDLINE, -(sp)
-              jsr r2, cmpStr
+              jsr r2, cmpStr          ; checks if the given command is "crack"
               .ascii <crack&>
               .even
               mov (sp)+, r2         ; (sp)=OUTPUT 1/0
               cmp r2, #1
               bne pass3
-              jmp chkPrint
+              jmp chkPrint            ; if not, than check if it is "print"
 pass3:
 
         ;;;;;; CRACK CALL
 
               tst -(sp)
               mov #CMDLINE, -(sp)
-              jsr pc, nextArgCmd
+              jsr pc, nextArgCmd        ; gets the next word in the given command line
               tst (sp)+
               mov (sp)+, r2          ; r2 = first parameter address
 
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
-              jsr pc, prmToOcCmd
+              jsr pc, prmToOcCmd        ; converts the parameter from ascii to octal num
               tst (sp)+
               movb (sp)+, IMG1Rows
 
               tst -(sp)
               mov r2, -(sp)          ; r2 = first parameter address
-              jsr pc, nextArgCmd
+              jsr pc, nextArgCmd      ; gets the next word in the given command line
               tst (sp)+
               mov (sp)+, r2          ; r2 = second parameter address
 
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
-              jsr pc, prmToOcCmd
+              jsr pc, prmToOcCmd       ; converts the parameter from ascii to octal num
               tst (sp)+
               movb (sp)+, IMG1Cols
 
               tst -(sp)
               mov r2, -(sp)          ; r2 = second parameter address
-              jsr pc, nextArgCmd
+              jsr pc, nextArgCmd      ; gets the next word in the given command line
               tst (sp)+
               mov (sp)+, r2          ; r2 = third parameter address
 
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
-              jsr pc, prmToOcCmd
+              jsr pc, prmToOcCmd       ; converts the parameter from ascii to octal num
               tst (sp)+
               movb (sp)+, KeyMaxSize
 
-              mov #crkPrmt1, -(sp)
+              mov #crkPrmt1, -(sp)      ; crkPrmt1="Please enter image"
               mov #1, -(sp)
               jsr pc, printText
               cmp (sp)+, (sp)+
 
-              mov #IMG1Cols, COLSADR
+              mov #IMG1Cols, COLSADR        ; init COLSADR and ROWSADR for imgInput
               mov #IMG1Rows, ROWSADR
 
               ;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov #TEMPIMG, IMGIT
-              movb #3, Ctrl
+              mov #TEMPIMG, IMGIT           ; init IMGIT iterator
+              movb #3, Ctrl                 ; Ctrl=3 when the first IMG for crack need to be proccess
               jmp cmdInpFinish
               ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-finCrk1:      mov r5, -(sp)
+finCrk1:      mov r5, -(sp)                 ; gets here when the first IMG is ready
 
               clr r5
               movb IMG1Cols, r5
               mov r4, -(sp)
               clr r4
               movb IMG1Rows, r4
-              mul r4, r5
+              mul r4, r5                  ; calculates dimentions of IMG and stores it in r5
               mov (sp)+, r4
 
               mov r5, -(sp)             ; r5=dimenstions
               mov #IMG1, -(sp)
-              jsr pc, parseImg
+              jsr pc, parseImg          ; remove all irelevant data which has been given by user and stores data in IMG1
               cmp (sp)+, (sp)+
 
               mov r5, -(sp)             ; r5=dimenstions
               mov #IMG1, -(sp)          ; img to convert from asci to octal
-              jsr pc, asciToOc
+              jsr pc, asciToOc          ; converts all data from ascii to octal nums
               cmp (sp)+, (sp)+
 
               mov (sp)+, r5
 
-              mov #crkPrmt2, -(sp)
+              mov #crkPrmt2, -(sp)        ; crkPrmt2="Please enter encoded image"
               mov #1, -(sp)
               jsr pc, printText
               cmp (sp)+, (sp)+
 
               ;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov #TEMPIMG, IMGIT
-              movb #4, Ctrl
+              mov #TEMPIMG, IMGIT         ; init IMG iterator
+              movb #4, Ctrl               ; Ctrl=4 when the second IMG of crack need to be proccess
               mov #101, tks
               rti
               ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-finCrk2:      mov r5, -(sp)
+finCrk2:      mov r5, -(sp)             ; gets here when second IMG is ready
 
               clr r5
               movb IMG1Cols, r5
               mov r4, -(sp)
               clr r4
               movb IMG1Rows, r4
-              mul r4, r5
+              mul r4, r5                ; calculates dimentions of IMG and stores in r5
               mov (sp)+, r4
 
               mov r5, -(sp)             ; r5=dimenstions
               mov #IMG2, -(sp)
-              jsr pc, parseImg
+              jsr pc, parseImg          ; remove all irelevant data which has been given by user and stores data in IMG1
               cmp (sp)+, (sp)+
 
               mov r5, -(sp)             ; r5=dimenstions
               mov #IMG2, -(sp)          ; img to convert from asci to octal
-              jsr pc, asciToOc
+              jsr pc, asciToOc          ; converts all data from ascii to octal nums
               cmp (sp)+, (sp)+
 
               mov r5, (sp)+
 
               mov #1, -(sp)
-              jsr pc, setPrio        ; change priority level from 4 to 1
+              jsr pc, setPrio        ; change priority level from 4 to 1 for enabling keboard to interupt
               tst (sp)+
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        mov #cmdPrmt, -(sp)
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; interuptions enable ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        mov #cmdPrmt, -(sp)           ; prints "$ "
         mov #newLinePrmt, -(sp)
         mov #2, -(sp)
         jsr pc, printText
         cmp (sp)+, (sp)+
         tst (sp)+
 
-        movb #0, Ctrl
-        mov #TEMPCMD, CMDIT
-        mov #101, tks
+        movb #0, Ctrl                 ; init Ctrl to start getting new commands while finding Key
+        mov #TEMPCMD, CMDIT           ; init CMD iterator to start
+        mov #101, tks                 ; turns keyboard interuptions while finding a key
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
               mov r2, -(sp)          ; environment safty
@@ -461,24 +465,38 @@ finCrk2:      mov r5, -(sp)
               cmp (sp)+, (sp)+
 
               mov #4, -(sp)
-              jsr pc, setPrio        ; change priority level from 1 to 4
+              jsr pc, setPrio        ; restore priority level from 1 to 4 after a key has been found
               tst (sp)+
 
               mov (sp)+, r5           ; restore registers from outside
               mov (sp)+, r4
               mov (sp)+, r2
 
-              cmpb Ctrl, #0
+              cmpb Ctrl, #0           ; checks the correct state of the program if it is getting an image or a command
               bne cont1
-dollar:       bit #200, tps
+dollar:       bit #200, tps           ; if a command than print "$ " and all the privous given chars
               beq dollar
               mov #'$, tpb
 space:        bit #200, tps
               beq space
               mov #40, tpb
+              mov r1, -(sp)
+              mov r2, -(sp)
+              mov CMDIT, r1
+              mov #TEMPCMD, r2
+cmdCont1:     cmp r1, #TEMPCMD
+              beq cmdCont2
+prin:         bit #200, tps
+              beq prin
+              movb (r2)+, tpb
+              dec r1
+              br cmdCont1
+cmdCont2:     mov (sp)+, r2
+              mov (sp)+, r1
               mov #101, tks
               rti
-cont1:        mov r1, -(sp)
+
+cont1:        mov r1, -(sp)           ; if an image than prints all the privious given chars
               mov r2, -(sp)
               mov IMGIT, r1
               mov #TEMPIMG, r2
@@ -495,7 +513,7 @@ cont3:        mov (sp)+, r2
               rti
 
 chkPrint:     mov #CMDLINE, -(sp)
-              jsr r2, cmpStr
+              jsr r2, cmpStr            ; checks if the given command is "print"
               .ascii <print&>
               .even
               mov (sp)+, r2         ; (sp)=OUTPUT 1/0
@@ -506,22 +524,22 @@ chkPrint:     mov #CMDLINE, -(sp)
 
               movb IMG3Cols, -(sp)
               movb IMG3Rows, -(sp)
-              jsr pc, cmdPrint
+              jsr pc, cmdPrint          ; prints IMG3 label - last encode or decode call
               cmp (sp)+, (sp)+
 
               jmp clrFinishCmd
 
 chkQuit:      mov #CMDLINE, -(sp)
-              jsr r2, cmpStr
+              jsr r2, cmpStr            ; checks if the given command is "quit"
               .ascii <quit&>
               .even
               mov (sp)+, r2         ; (sp)=OUTPUT 1/0
               cmp r2, #1
-              beq chkFail
+              beq chkFail               ; if not, than it is an UNknown command
 
         ;;;;;; QUIT CALL
 
-              mov #quitPrmt, -(sp)
+              mov #quitPrmt, -(sp)        ;quitPrmt="Goodbye!"
               mov #1, -(sp)
               jsr pc, printText
               cmp (sp)+, (sp)+
@@ -529,7 +547,7 @@ chkQuit:      mov #CMDLINE, -(sp)
 
         ;;;;;; UNKNOWN COMMAND
 
-chkFail:      mov #dotPrmt, -(sp)
+chkFail:      mov #dotPrmt, -(sp)           ; gets here when an Unknow command has been given
               mov #CMDLINE, -(sp)
               mov #unknownPrmt, -(sp)
               mov #3, -(sp)
@@ -541,6 +559,8 @@ chkFail:      mov #dotPrmt, -(sp)
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 cmdEnc: ; 2(sp) - nCols, 4(sp) - nRows
+; gets by stack nCols and nRows address and turns
+; encryptes an image which stored in IMG3 label and prints the result
 
       mov r5, -(sp)
 
@@ -558,12 +578,12 @@ cmdEnc: ; 2(sp) - nCols, 4(sp) - nRows
 
       mov r5, -(sp)             ; r5=dimenstions
       mov #IMG3, -(sp)
-      jsr pc, parseImg
+      jsr pc, parseImg          ; remove all irelevant data and transfer it from TEMPIMG to IMG3
       cmp (sp)+, (sp)+
 
       mov r5, -(sp)             ; r5=dimenstions
       mov #IMG3, -(sp)          ; img to convert from asci to octal
-      jsr pc, asciToOc
+      jsr pc, asciToOc          ; converts IMG3 from ascii to octal nums
       cmp (sp)+, (sp)+
 
       mov #IMG3, -(sp)
@@ -571,10 +591,10 @@ cmdEnc: ; 2(sp) - nCols, 4(sp) - nRows
       mov 10(sp), -(sp)            ; 10(sp)=nCols address
       mov #Hash, -(sp)
       mov #KeyUse, -(sp)
-      jsr pc, encode
+      jsr pc, encode                ; encodes IMG3 and stores the result ing IMG3
       add #12, sp
 
-      mov #encPrmt2, -(sp)
+      mov #encPrmt2, -(sp)          ;encPrmt2="The encoded image is:"
       mov #1, -(sp)
       jsr pc, printText
       cmp (sp)+, (sp)+
@@ -583,7 +603,7 @@ cmdEnc: ; 2(sp) - nCols, 4(sp) - nRows
       movb @10(sp), -(sp)            ; 10(sp) = nRows
       clr -(sp)
       movb @12(sp), (sp)            ; 12(sp) = nCols
-      jsr pc, printImg
+      jsr pc, printImg              ; prints IMG3
       cmp (sp)+, (sp)+
       tst (sp)+
 
@@ -592,7 +612,12 @@ rts pc
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-imgInput: ; using r0 for chars iterator on TEMPIMG
+imgInput: ; using IMGIT for chars iterator on TEMPIMG
+; this is the sub input program which called by branch from cmdInput
+; when Ctrl is 1,2,3,4 which represents where to imgInput has been called
+; this subrutine proccessed an image char by char and does "rti" afterwards
+; all chars stores in TEMPIMG label
+
       mov r1, -(sp)
       mov r2, -(sp)
       mov r5, -(sp)
@@ -602,7 +627,7 @@ imgInput: ; using r0 for chars iterator on TEMPIMG
       mov r4, -(sp)
       clr r4
       movb @ROWSADR, r4
-      mul r4, r5
+      mul r4, r5              ; calculates image dimenstions and stores it in r5
       mov (sp)+, r4
 
       clr r1
@@ -610,13 +635,13 @@ imgInput: ; using r0 for chars iterator on TEMPIMG
 
               cmp r1, #'\b
               bne imgInpEnter
-              cmp IMGIT, #TEMPIMG      ; r3=dymanic Img's addres
+              cmp IMGIT, #TEMPIMG      ; IMGIT=dymanic Img's addres
               beq imgInpFinish
-              mov IMGIT, r2          ; r3=dymanic Img's addres
+              mov IMGIT, r2          ; IMGIT=dymanic Img's addres
               cmpb -(r2), #'\r
               beq imgInpFinish
               dec IMGIT
-              movb #0, @IMGIT       ; r3=dymanic Img's Address
+              movb #0, @IMGIT       ; IMGIT=dymanic Img's Address
               br imgInpPrint
 
 imgInpEnter:  cmp r1, #'\r        ; is Enter?
@@ -624,40 +649,40 @@ imgInpEnter:  cmp r1, #'\r        ; is Enter?
               tst -(sp)               ; OUTPUT
               mov IMGIT, -(sp)       ; r3=dynamic Img address
               mov #TEMPIMG, -(sp)
-              jsr pc, imgInpCount
+              jsr pc, imgInpCount       ; Counts if num of relevant chars is bigger than image dimentions
               cmp (sp)+, (sp)+
               mov (sp)+, r2
               cmp r2, r5        ; r5=dimensions
-              blo imgPrintLF
+              blo imgPrintLF            ; if not, then continue stores char in TEMPIMG
               ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov (sp)+, r5
+              mov (sp)+, r5               ; gets here when finished gets chars for the image
               mov (sp)+, r2
               mov (sp)+, r1
               cmpb #1, Ctrl
               bne pass4
-              jmp finEnc
+              jmp finEnc          ; if was called from encode then finish encode function
 pass4:        cmpb #2, Ctrl
               bne pass5
-              jmp finDec
+              jmp finDec          ; is was called from decode then finish decode function
 pass5:        cmpb #3, Ctrl
               bne pass6
-              jmp finCrk1
-pass6:        jmp finCrk2       ; Ctrl=4
+              jmp finCrk1           ; if was called from the first section of crack function, then run the second part
+pass6:        jmp finCrk2       ; Ctrl=4, if was called from the second section of crack function, then run the last part of it
               ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-imgPrintLF:   bit #200, tps
+imgPrintLF:   bit #200, tps       ; if the image isnt ready then prints new line and continue
               beq imgPrintLF
               mov #'\n, tpb
               br imgInpUpdate
 
-imgInpUpdate: movb r1, @IMGIT     ; r3=Img's address
-              inc IMGIT
+imgInpUpdate: movb r1, @IMGIT     ; IMGIT=Img's address
+              inc IMGIT           ; stores the given char in TEMPCMD current pointer and increase it the point the next byte
               br imgInpPrint
 
 imgIpBS1:     mov #40, r1         ; 40=" "
               bit #200, tps
               beq imgIpBS1
               mov r1, tpb
-imgIpBS2:     mov #'\b, r1
+imgIpBS2:     mov #'\b, r1        ; if Backspace has been given then print \b then " " then \b again
               bit #200, tps
               beq imgIpBS2
               mov r1, tpb
@@ -669,37 +694,39 @@ imgInpPrint:  bit #200, tps
               bne imgInpFinish
               br imgIpBS1
 
-imgInpFinish: mov #101, tks
-imgIpEnd:     mov (sp)+, r5
+imgInpFinish: mov #101, tks       ; gets here when need to continue gets chars for the image
+imgIpEnd:     mov (sp)+, r5       ; gets here when an image is ready
               mov (sp)+, r2
               mov (sp)+, r1
               rti
 
 imgInpCount: ; 2(sp) - start addres, 4(sp) - end address, 6(sp) - OUTPUT
+; this subrutine used by imgInput to count how much relevant chars have been given until the last Enter
+; the OUTPUT is stored in stack
 
       mov r0, -(sp)
       mov r1, -(sp)
 
       mov 6(sp), r0             ; 6(sp) - start address
-      clr r1
+      clr r1                    ; r1 counts relevant chars in the image
 
 countCont:
-countChar:  cmpb (r0), #141
+countChar:  cmpb (r0), #141     ; checks if the current char is between "a" to "f"
             blo countNum
             cmpb (r0), #146
             bhi countNum
             br countTrue
 
-countNum:   cmpb (r0), #60
+countNum:   cmpb (r0), #60        ; checks if the current char is between "0" to "9"
             blo countFalse
             cmpb (r0), #71
             bhi countFalse
             br countTrue
 
-countTrue:  inc r1
-countFalse: inc r0
+countTrue:  inc r1                ; gets here when a valid char is found
+countFalse: inc r0                ; gets here when a irelevant char is found
             cmp 10(sp), r0      ; 10(sp) - end address
-            bhi countCont
+            bhi countCont         ; if finished to analize all chars from start, then finish subrutine
 
 countFinish:  mov r1, 12(sp)    ; 12(sp) - OUTPUT
               mov (sp)+, r1
@@ -708,16 +735,13 @@ countFinish:  mov r1, 12(sp)    ; 12(sp) - OUTPUT
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ; receives the following stack:
-; temp r1
-; columns
-; rows
 ; return address
 ; amount of rows
 ; amount of columns
 
 cmdPrint: mov 2(sp), -(sp)
           mov 6(sp), -(sp)
-          mov (r1), -(sp)         ;IMG iterator
+          mov r1, -(sp)         ;IMG iterator
           mov #IMG3, r1
           bit #1, @#tps
 PstepCol:
@@ -753,7 +777,7 @@ Pnewcrline:
           dec 4(sp)               ;continues to the next line
           bne PstepCol
 
-          tst (sp)+
+          mov (sp)+, r1
           cmp (sp)+, (sp)+
           rts pc
 
@@ -771,12 +795,8 @@ cmdCrack: ; 2(sp) - nCols , 4(sp) - nRows, 6(sp) - key's max size
       mul r4, r5
       mov (sp)+, r4
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
       mov 10(sp), -(sp)         ; 10(sp)=key's max size
-      jsr pc, crkGenKey
+      jsr pc, crkGenKey         ; gets max key size and generate a matched linked list for crack proccess
       tst (sp)+
 
       mov #IMG1, -(sp)
@@ -784,11 +804,11 @@ cmdCrack: ; 2(sp) - nCols , 4(sp) - nRows, 6(sp) - key's max size
       mov 12(sp), -(sp)          ; 12(sp)=nRows
       mov 12(sp), -(sp)          ; 12(sp)=nCols
       mov #Hash, -(sp)
-      jsr pc, crkSystem
+      jsr pc, crkSystem           ; call crack function to find a matched key for encode IMG1 to IMG3
       add #12, sp
 
       tst -(sp)
-      jsr pc, keyToStr
+      jsr pc, keyToStr            ; converts key linked list to key sequence and stores it in KeyStr label
       mov (sp)+, r5          ; r5=key str length
 
       mov r5, -(sp)               ; r5=key str length
@@ -798,7 +818,7 @@ cmdCrack: ; 2(sp) - nCols , 4(sp) - nRows, 6(sp) - key's max size
 
       mov #newLinePrmt, -(sp)
       mov #KeyStr, -(sp)
-      mov #crkPrmt3, -(sp)
+      mov #crkPrmt3, -(sp)          ; prints the key that has been found in crack proccess
       mov #3, -(sp)
       jsr pc, printText
       cmp (sp)+, (sp)+
@@ -810,6 +830,8 @@ rts pc
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 keyToStr: ; 2(sp) - OUTPUT key str length
+; this subrutine converts key's linked list to string which in Key label and stores it in Keystr
+
       mov r0, -(sp)
       mov r1, -(sp)
       mov r2, -(sp)
@@ -825,10 +847,10 @@ keyStrPrcs:   cmp (r0), #-1
               tst (r0)+
               cmp (r0), #0
               beq keyStrFinish
-              mov (r0), r0
+              mov (r0), r0              ; r0 gets the next node by address and continue converting
               br keyStrPrcs
 
-keyStrFinish: mov #'&, (r1)
+keyStrFinish: movb #'&, (r1)
               mov r2, 10(sp)        ; 10(sp)=OUTPUT
               mov (sp)+, r2
               mov (sp)+, r1
@@ -927,7 +949,10 @@ crkSystem: ; 2(sp)=Hash , 4(sp)=nCols , 6(sp)=nRows , 10(sp)=EncImg , 12(sp)=Ori
           add #10, sp
 
           tst (sp)+
-          beq sysFinish         ; checks if EncImg == OrigImg
+          bne sysFind         ; checks if EncImg == OrigImg
+          mov #Key, r1
+          jsr pc, nextKey
+          br sysFinish
 
 sysFind:  mov #Key, r1
           jsr pc, nextKey
@@ -1092,16 +1117,12 @@ cmdDec: ; 2(sp) - nCols, 4(sp) - nRows
       mov r4, -(sp)
       clr r4
       movb @10(sp), r4    ; 10(sp) = nRows
-      mul r4, r5
+      mul r4, r5              ; calculates image dimenstions and stores it in r5
       mov (sp)+, r4
-
-      ;;;;;;;;;;;;;;;;;;;;;; input was here
-
-      ;;;;;;;;;;;;;;;;;;;;;; input was here
 
       mov r5, -(sp)             ; r5=dimenstions
       mov #IMG3, -(sp)
-      jsr pc, parseImg
+      jsr pc, parseImg            ; removes all ireleveant data and stores it in IMG3 label
       cmp (sp)+, (sp)+
 
       mov r5, -(sp)             ; r5=dimenstions
@@ -1114,10 +1135,10 @@ cmdDec: ; 2(sp) - nCols, 4(sp) - nRows
       mov 10(sp), -(sp)            ; 10(sp)=nCols address
       mov #Hash, -(sp)
       mov #KeyUse, -(sp)
-      jsr pc, decode
+      jsr pc, decode                ; decode the given image and stores the result in the same label
       add #12, sp
 
-      mov #decPrmt2, -(sp)
+      mov #decPrmt2, -(sp)          ; decPrmt2="The decoded image is:"
       mov #1, -(sp)
       jsr pc, printText
       cmp (sp)+, (sp)+
@@ -1126,7 +1147,7 @@ cmdDec: ; 2(sp) - nCols, 4(sp) - nRows
       movb @10(sp), -(sp)            ; 10(sp) = nRows
       clr -(sp)
       movb @12(sp), (sp)            ; 12(sp) = nCols
-      jsr pc, printImg
+      jsr pc, printImg               ; prints the result in Hexa chars
       cmp (sp)+, (sp)+
       tst (sp)+
 
@@ -1356,6 +1377,7 @@ DNextRow:
 ; The state of the stack when enters the proc:
 ; return address
 ; priority level
+; this subrutine changes the program priority level for enableing interupts
 
 setPrio:  mov r1, -(sp)
           mov 4(sp), r1
@@ -1374,6 +1396,8 @@ setPrio:  mov r1, -(sp)
 ; return address
 ; number string
 ; empty space for octal num
+; this subrutine gets a string by address and converts it to ocatal num
+; the given string represents an octal number
 prmToOcCmd: mov r1, -(sp)     ;string iterator
             mov r3, -(sp)
             mov #10, -(sp)
@@ -1399,6 +1423,9 @@ prmFinish:
             rts pc
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; this subrutine gets an address for sroing data and removes all irelevant chars
+; all data is transfered to the given address without illegal chars
 
 parseImg: mov r1,-(sp)          ; valid Img iterator
           mov r2, -(sp)         ; temp image terator
@@ -1445,6 +1472,10 @@ charSet: .ascii<0123456789abcdef&>
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 asciToOc:; 2(sp) - #str , 4(sp) - size
+; this subrutine gets by stack an address of string and its size
+; the given string represent hexa digits
+; all hexa digit are converted to octal codes
+
       mov r1, -(sp)
       mov r2, -(sp)
       mov r3, -(sp)
@@ -1458,14 +1489,14 @@ toOcProcess:
       bic #777637, r2
       cmp r2, #140            ; is char?
       beq ocChar
-ocNum:  mov (sp)+, r2
+ocNum:  mov (sp)+, r2         ; gets here when the current digit is a num
         bic #777760, r2
         br ocUpdate
-ocChar: mov (sp)+, r2
+ocChar: mov (sp)+, r2         ; gets here when the current digit is a char
         bic #777770, r2
         add #11, r2
 
-ocUpdate:   movb r2, (r1)+
+ocUpdate:   movb r2, (r1)+    ; converts from ascii to octal
             dec r3
             beq toOcFinish
             br toOcProcess
@@ -1524,6 +1555,10 @@ PInewcrline:
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ocToAsci:; 2(sp) - #str , 4(sp) - size
+  ; this subrutine gets by stack an address of string and its size
+  ; the given string represent octal code
+  ; all octal codes are converted to ascii codes which represents hexa digits
+
       mov r1, -(sp)
       mov r2, -(sp)
       mov r3, -(sp)
@@ -1766,6 +1801,7 @@ MNextLine:
 ; - return address
 ; - num of args
 ; - addresses
+; this subrutine prints all given strings in stack
 
 printText:  mov r0, -(sp)
             tst -(sp)      ; index for current string to print in the stack
@@ -1798,8 +1834,10 @@ PTstringEnd:  sob r0, PTprintString
 ; receives the following stack:
 ; return address
 ; string to compare
-; output:
-; 1/0
+; output: 0\1
+; 1 - if the given string is not equal
+; 0 - if the given string is equal
+; the second string is transfered INLINE
 cmpStr:   mov r1, -(sp)
           mov r2, r1
 CSequal:  cmpb (r1)+, @4(sp)
@@ -1871,6 +1909,12 @@ NAend:      mov (sp)+, r1
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 parseCmd:
+; this subrutine doesnt get any input values
+; it removes all unnessery spaces in TEMPCMD and formatted the command to be like "encode&4&4&@"
+; & represents an end of a single word in the command
+; @ represents an end of a command line
+; all data is stored in CMDLINE label
+
       mov r0, -(sp)
       mov r1, -(sp)
       mov r2, -(sp)
@@ -1945,7 +1989,10 @@ KeyUse: .word 0, 0
         .blkw 100
 Key: .blkw 100
 KeyStr: .blkw 100
+TEMPIMG: .blkw 1000
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 IMG1: .blkw 1000
 IMG2: .blkw 1000
 IMG3: .blkw 1000
-TEMPIMG: .blkw 1000
