@@ -43,7 +43,7 @@ halt
 cmdPrint: mov 2(sp), -(sp)
           mov 6(sp), -(sp)
           mov r1, -(sp)         ;IMG iterator
-          mov #IMG4, r1
+          mov #IMG3, r1
           bit #1, @#tps
 PstepCol:
           mov #1, -(sp)
