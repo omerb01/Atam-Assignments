@@ -542,8 +542,8 @@ chkQuit:      mov #CMDLINE, -(sp)
               mov #quitPrmt, -(sp)        ;quitPrmt="Goodbye!"
               mov #1, -(sp)
               jsr pc, printText
-              cmp (sp)+, (sp)+
-              jmp cmdIpEnd
+              mov #main, sp
+              jmp finish
 
         ;;;;;; UNKNOWN COMMAND
 
@@ -739,7 +739,13 @@ countFinish:  mov r1, 12(sp)    ; 12(sp) - OUTPUT
 ; amount of rows
 ; amount of columns
 
-cmdPrint: mov 2(sp), -(sp)
+cmdPrint: cmp 2(sp), #0
+          bne cont10
+          cmp 4(sp), #0
+cont10:   bne cont11
+          rts pc
+
+cont11:   mov 2(sp), -(sp)
           mov 6(sp), -(sp)
           mov r1, -(sp)         ;IMG iterator
           mov #IMG3, r1
