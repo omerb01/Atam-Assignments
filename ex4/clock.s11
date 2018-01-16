@@ -5,42 +5,40 @@ tpb = 177566
 lcs = 177546
 .=torg +1000
 main: mov #main, sp
+          mov #str1, -(sp)
+          jsr pc, printClock
+          tst (sp)+
+          jmp Finish
 
-      mov #inp, 60
-      mov #400, 62
-      mov #clock, 100
-      mov #100, 102
-      mov #101, tks
-      mov #100, lcs
 
-l:      wait
-        wait
-        br l
-
-isec:   inc @#seconds
-        clr @#timepass
-        br l
-
-clock:  inc @#timepass                ;clock procedure
-        cmp @#timepass, @#rate
-        beq isec
-        rti
+clock:  cmp @#clkctrl, #0
+        beq regfclk
+        cmp @#clkctrl, #1
+        beq crackclk
+        cmp @#clkctrl, #2
+        beq bothclk
+regfclk:
+        cmp @#regfsec, #0
+        bne fclock
+        inc @#regftime
+        br fclock
+crackclk:
+        cmp @#cracksecs, #0
+        bne fclock
+        inc @#cracktime
+        br fclock
+bothclk:
+        inc @#cracktime
+        inc @#regftime
+fclock: rti
 
 clockON:  mov #100, lcs
           rts pc
-;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; #str -> command name, should be delivered via adderss or other method
-; change the funtion below to procedure from interuppt
-;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;inp:      mov #0, @#lcs             ;should be removed
-;          mov r2, -(sp)
-;          mov r3, -(sp)
-;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; function receives command name. It prints the time completed in with corresponding format.
-; stack received:
-; return address
-; command string addr
-;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+clockOFF: mov #0, lcs
+          rts pc
+
+
 printClock:
           mov 2(sp), -(sp)          ;prints command name
           mov #1, -(sp)
@@ -52,10 +50,26 @@ printClock:
           jsr pc, printText
           cmp (sp)+, (sp)+
 
-          mov @#seconds, -(sp)        ;prints seconds in format "...x.x"
-          cmp @#seconds, #0
+          mov r2, -(sp)
+          mov 4(sp), -(sp)
+          jsr r2, cmpStr
+          .ascii <crack&>
+          .even
+          cmp (sp), #0
+          bne pushregf
+          tst (sp)+
+          mov (sp)+, r4
+          mov @#cracksecs, -(sp)        ;prints regfsec in format "...x.x"
+          cmp @#cracksecs, #0
           beq printz
-          jsr pc, numPrintAsci
+          br tmprint
+pushregf:
+          tst (sp)+
+          mov (sp)+, r4
+          mov @#regfsec, -(sp)        ;prints regfsec in format "...x.x"
+          cmp @#regfsec, #0
+          beq printz
+tmprint:  jsr pc, numPrintAsci
           tst (sp)+
           br dotprint
 printz:   mov #60, @#tpb
@@ -67,7 +81,21 @@ ib_w:     tstb @#tps
 ;~~~~~~~ prints time left ~~~~~~~~~~~~~
           mov #23420, -(sp)
           mov r4, -(sp)
-          mov @#timepass, r2
+
+          mov r2, -(sp)
+          mov 10(sp), -(sp)
+          jsr r2, cmpStr
+          .ascii <crack&>
+          .even
+          cmp (sp), #0
+          bne movereg
+          tst (sp)+
+          mov (sp)+, r2
+          mov @#cracktime, r2
+          br divmils
+movereg:  tst (sp)+
+          mov (sp)+, r2
+          mov @#regftime, r2
 divmils:  mov r2, r3
           clr r2
           div 2(sp), r2
@@ -92,12 +120,22 @@ qb_w:     tstb @#tps
           mov #1, -(sp)
           jsr pc, printText
           cmp (sp)+, (sp)+
-          mov #0, @#seconds
-          mov #0, @#timepass
-;          mov (sp)+, r3
-;          mov (sp)+, r2
-;          jsr pc, stop
-;          rti
+
+          mov r2, -(sp)
+          mov 4(sp), -(sp)
+          jsr r2, cmpStr
+          .ascii <crack&>
+          .even
+          cmp (sp), #0
+          beq nullcrack
+          mov #0, @#regftime
+          mov #0, @#regfsec
+          br endTime
+nullcrack:
+          mov #0, @#cracksecs
+          mov #0, @#cracktime
+endTime:  tst (sp)+
+          mov (sp)+, r2
           rts pc
 
 
@@ -129,7 +167,6 @@ nb_w:       tstb @#tps
             bne iszero
             cmp 6(sp), #0
             beq iszero
-            ;800
 print_zero: mov #12, 10(sp)
 dagain:     mov 6(sp), r3
             clr r2
@@ -157,7 +194,8 @@ nclear:     mov 6(sp), r2
             br printnum
 
 
-nfinish:    mov (sp)+, r4
+nfinish:    tst (sp)+
+            ;mov (sp)+, r4
             mov (sp)+, r3
             mov (sp)+, r2
             cmp (sp)+, (sp)+
@@ -192,16 +230,71 @@ PTprintLoop:  tstb @#tps
 
 PTstringEnd:  sob r0, PTprintString
 
-            mov (sp)+, r1
-            tst (sp)+
-            mov (sp)+, r0
-            rts pc
+mov (sp)+, r1
+tst (sp)+
+mov (sp)+, r0
+rts pc
 
+; receives the following stack:
+; return address
+; string to compare
+; output:
+; 1/0
+cmpStr:   mov r1, -(sp)
+          mov r2, r1
+CSequal:  cmpb (r1)+, @4(sp)
+          bne CSnequal
+          inc 4(sp)               ;advances string to compare to
+          cmpb (r1), #'&
+          beq CSexit
+          br CSequal
+
+CSnequal:    mov #1, 4(sp)
+          br CSend
+CSexit:
+          mov #0, 4(sp)
+          br CSend
+
+CSend:    mov r2, -(sp)
+          clr -(sp)
+          jsr pc, strlen
+          add (sp), r2
+          bit #1, r2
+          beq CSfin
+          inc r2
+CSfin:    cmp (sp)+, (sp)+
+          mov (sp)+, r1
+          rts r2
+
+
+; recevies the following stack (HOW THE STACK LOOKS WHEN ENTERS THE PROC):
+; return address
+; len of string after calculation (enters empty)
+; string itself (addr)
+
+strlen: mov r1, -(sp)
+        mov 6(sp), r1       ;4(sp) = string
+        clr 4(sp)
+strloop:  cmpb (r1), #'&
+          beq strFin
+          inc 4(sp)         ;6(sp) = strlen counter
+          inc r1
+          br strloop
+strFin:   inc 4(sp)         ;counts the '&'
+          mov (sp)+, r1
+          rts pc
+
+
+
+Finish:     halt
 
 str2: .ascii< completed in &>
 .even
-str1: .ascii<crack&>
+str1: .ascii<cr4ck&>
 str3: .ascii<sec&>
-timepass: .word 0.                   ;global variable
-seconds: .word 0.                ;global variable
+clkctrl:   .word 4
+cracktime: .word 12.
+cracksecs: .word 52.
+regftime: .word 53.                   ;global variable
+regfsec: .word 23.                ;global variable
 rate: .word 1000.               ;provided by the test
