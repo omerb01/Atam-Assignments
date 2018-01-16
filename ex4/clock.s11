@@ -17,24 +17,32 @@ l:      wait
         wait
         br l
 
-;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+isec:   inc @#seconds
+        clr @#timepass
+        br l
 
 clock:  inc @#timepass                ;clock procedure
         cmp @#timepass, @#rate
         beq isec
         rti
 
-isec:   inc @#seconds
-        clr @#timepass
-        br l
+clockON:  mov #100, lcs
+          rts pc
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; #str -> command name, should be delivered via adderss or other method
 ; change the funtion below to procedure from interuppt
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-inp:      mov #0, @#lcs             ;should be removed
-          mov r2, -(sp)
-          mov r3, -(sp)
-          mov #str1, -(sp)          ;prints command name
+;inp:      mov #0, @#lcs             ;should be removed
+;          mov r2, -(sp)
+;          mov r3, -(sp)
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; function receives command name. It prints the time completed in with corresponding format.
+; stack received:
+; return address
+; command string addr
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+printClock:
+          mov 2(sp), -(sp)          ;prints command name
           mov #1, -(sp)
           jsr pc, printText
           cmp (sp)+, (sp)+
@@ -84,12 +92,16 @@ qb_w:     tstb @#tps
           mov #1, -(sp)
           jsr pc, printText
           cmp (sp)+, (sp)+
-          mov (sp)+, r3
-          mov (sp)+, r2
-          jsr pc, stop
-          rti
+          mov #0, @#seconds
+          mov #0, @#timepass
+;          mov (sp)+, r3
+;          mov (sp)+, r2
+;          jsr pc, stop
+;          rti
+          rts pc
 
-stop:     halt
+
+;stop:     halt
 
 ; receives:
 ; return address
@@ -150,7 +162,7 @@ nfinish:    mov (sp)+, r4
             mov (sp)+, r2
             cmp (sp)+, (sp)+
             rts pc
-done: halt
+
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~``
 
 ; recevies num of args to print, then the string addresses
