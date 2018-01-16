@@ -52,11 +52,12 @@ setKeySucces:
       jsr pc, ocToAsci
       cmp (sp)+, (sp)+
 
-      mov 10(sp), -(sp)         ; 10(sp)=#strKey
+      mov #newLinePrmt, -(sp)
+      mov 12(sp), -(sp)         ; 12(sp)=#strKey
       mov #setKeyPrmp, -(sp)
-      mov #2, -(sp)
+      mov #3, -(sp)
       jsr pc, printText
-      add #6, sp
+      add #10, sp
 
 keyFinish:
       mov (sp)+, r2
@@ -159,6 +160,7 @@ toOcFinish: mov (sp)+, r3
 
 finish: halt
 setKeyPrmp: .ascii<Encryption key set to &>
+newLinePrmt: .ascii<\n\r&>
 strKey: .ascii<0a1&>
 .even
 KeyUse: .blkw 100

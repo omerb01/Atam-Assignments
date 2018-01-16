@@ -31,7 +31,7 @@ cmdCrack: ; 2(sp) - nCols , 4(sp) - nRows, 6(sp) - key's max size
       movb @4(sp), r5         ; 4(sp) = nCols
       mov r4, -(sp)
       clr r4
-      movb @6(sp), r4    ; 6(sp) = nRows
+      movb @10(sp), r4    ; 10(sp) = nRows
       mul r4, r5
       mov (sp)+, r4
 

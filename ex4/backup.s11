@@ -17,7 +17,7 @@ main: mov #main, sp
       cmp (sp)+, (sp)+
       tst (sp)+
 
-      mov #TEMPCMD, CMDIT
+      mov #TEMPCMD, r0
       bis #1, tps
       mov #101, tks
 
@@ -28,11 +28,6 @@ loop: wait
       jmp finish
 
 cmdInput: ; using r0 for chars iterator on TEMPCMD
-
-      cmpb Ctrl, #0
-      beq pass2
-      jmp imgInput
-pass2:
       mov r1, -(sp)
       mov r2, -(sp)
 
@@ -41,10 +36,10 @@ pass2:
 
               cmp r1, #'\b
               bne cmdInpEnter
-              cmp CMDIT, #TEMPCMD      ; r0=dymanic cmd's addres
+              cmp r0, #TEMPCMD      ; r0=dymanic cmd's addres
               beq cmdInpFinish
-              dec CMDIT
-              movb #0, @CMDIT       ; r0=dymanic cmd's Address
+              dec r0
+              movb #0, (r0)       ; r0=dymanic cmd's Address
               br cmdInpPrint
 
 cmdInpEnter:  cmp r1, #'\r        ; is Enter?
@@ -55,13 +50,13 @@ cmdPrtLF:     bit #200, tps
 cmdPrtCR:     bit #200, tps
               beq cmdPrtCR
               mov #'\r, tpb
-              movb #'&, @CMDIT     ; r0=cmd's address
-              inc CMDIT
+              movb #'&, (r0)     ; r0=cmd's address
+              inc r0
               jsr pc, parseCmd      ; transfer all data from TEMPCMD to CMDLINE without spaces in format: "encode&4&10&@"
               jmp FUNCS
 
-cmdInpUpdate: movb r1, @CMDIT     ; r0=cmd's address
-              inc CMDIT
+cmdInpUpdate: movb r1, (r0)     ; r0=cmd's address
+              inc r0
               br cmdInpPrint
 
 cmdIpBS1:     mov #40, r1         ; 40=" "
@@ -80,18 +75,14 @@ cmdInpPrint:  bit #200, tps
               bne cmdInpFinish
               br cmdIpBS1
 
-clrFinishCmd: mov #TEMPCMD, CMDIT        ; init TEMPCMD pointer to the beggining after command has been proccessed
+clrFinishCmd: mov #TEMPCMD, r0        ; init TEMPCMD pointer to the beggining after command has been proccessed
 finLoop1:     bit #200, tps
               beq finLoop1
               mov #'$, tpb
 finLoop2:     bit #200, tps
               beq finLoop2
               mov #40, tpb
-cmdInpFinish: mov #101, tks
-              cmpb Ctrl, #-1
-              bne cmdIpEnd
-              movb #0, Ctrl
-              rti
+cmdInpFinish: inc tks
 cmdIpEnd:     mov (sp)+, r2
               mov (sp)+, r1
               rti
@@ -115,11 +106,14 @@ chkEncode:    mov #CMDLINE, -(sp)
               tst (sp)+
               mov (sp)+, r2          ; r2 = first parameter address
 
+              mov r3, -(sp)          ; environment safty
+              mov r4, -(sp)
+
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
               jsr pc, prmToOcCmd
               tst (sp)+
-              movb (sp)+, IMG3Rows
+              mov (sp)+, r3           ; r3 = nRows value
 
               tst -(sp)
               mov r2, -(sp)          ; r2 = first parameter address
@@ -131,33 +125,13 @@ chkEncode:    mov #CMDLINE, -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
               jsr pc, prmToOcCmd
               tst (sp)+
-              movb (sp)+, IMG3Cols
+              mov (sp)+, r4           ; r4 = nCols value
 
               mov #2, -(sp)
               jsr pc, setPrio        ; change priority level from 4 to 2
               tst (sp)+
 
-              mov #encPrmt1, -(sp)
-              mov #1, -(sp)
-              jsr pc, printText
-              cmp (sp)+, (sp)+
-
-              mov #IMG3Cols, COLSADR
-              mov #IMG3Rows, ROWSADR
-
-              ;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov #TEMPIMG, IMGIT
-              movb #1, Ctrl
-              jmp cmdInpFinish
-              ;;;;;;;;;;;;;;;;;;;;;;;;;
-
-finEnc:       mov r3, -(sp)          ; environment safty
-              mov r4, -(sp)
-              clr r3
-              clr r4
-              movb IMG3Rows, r3
-              movb IMG3Cols, r4
-
+              mov #imgInput, 60        ; change input vector for encode
               ash #8, r3
               mov r3, -(sp)           ; r3=nRows
               movb r4, (sp)           ; r4=nCols
@@ -168,6 +142,7 @@ finEnc:       mov r3, -(sp)          ; environment safty
               jsr pc, cmdEnc          ; pushed nRows and nCols by address in stack
               cmp (sp)+, (sp)+
               tst (sp)+
+              mov #cmdInput, 60        ; restore to main input vector
 
               mov #4, -(sp)
               jsr pc, setPrio        ; change priority level from 2 to 4
@@ -176,7 +151,6 @@ finEnc:       mov r3, -(sp)          ; environment safty
               mov (sp)+, r4            ; restore registers from outside
               mov (sp)+, r3
 
-              movb #-1, Ctrl
               jmp clrFinishCmd
 
 chkDecode:    mov #CMDLINE, -(sp)
@@ -195,11 +169,14 @@ chkDecode:    mov #CMDLINE, -(sp)
               tst (sp)+
               mov (sp)+, r2          ; r2 = first parameter address
 
+              mov r3, -(sp)          ; environment safty
+              mov r4, -(sp)
+
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
               jsr pc, prmToOcCmd
               tst (sp)+
-              movb (sp)+, IMG3Rows           ; r3 = nRows value
+              mov (sp)+, r3           ; r3 = nRows value
 
               tst -(sp)
               mov r2, -(sp)          ; r2 = first parameter address
@@ -211,33 +188,13 @@ chkDecode:    mov #CMDLINE, -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
               jsr pc, prmToOcCmd
               tst (sp)+
-              movb (sp)+, IMG3Cols           ; r4 = nCols value
+              mov (sp)+, r4           ; r4 = nCols value
 
               mov #2, -(sp)
               jsr pc, setPrio        ; change priority level from 4 to 2
               tst (sp)+
 
-              mov #decPrmt1, -(sp)
-              mov #1, -(sp)
-              jsr pc, printText
-              cmp (sp)+, (sp)+
-
-              mov #IMG3Cols, COLSADR
-              mov #IMG3Rows, ROWSADR
-
-              ;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov #TEMPIMG, IMGIT
-              movb #2, Ctrl
-              jmp cmdInpFinish
-              ;;;;;;;;;;;;;;;;;;;;;;;;;
-
-finDec:       mov r3, -(sp)          ; environment safty
-              mov r4, -(sp)
-              clr r3
-              clr r4
-              movb IMG3Rows, r3
-              movb IMG3Cols, r4
-
+              mov #imgInput, 60        ; change input vector for encode
               ash #8, r3
               mov r3, -(sp)           ; r3=nRows
               movb r4, (sp)           ; r4=nCols
@@ -248,6 +205,7 @@ finDec:       mov r3, -(sp)          ; environment safty
               jsr pc, cmdDec          ; pushed nRows and nCols by address in stack
               cmp (sp)+, (sp)+
               tst (sp)+
+              mov #cmdInput, 60        ; restore to main input vector
 
               mov #4, -(sp)
               jsr pc, setPrio        ; change priority level from 2 to 4
@@ -256,7 +214,6 @@ finDec:       mov r3, -(sp)          ; environment safty
               mov (sp)+, r4            ; restore registers from outside
               mov (sp)+, r3
 
-              movb #-1, Ctrl
               jmp clrFinishCmd
 
 chkHash:      mov #CMDLINE, -(sp)
@@ -309,9 +266,7 @@ chkCrack:     mov #CMDLINE, -(sp)
               .even
               mov (sp)+, r2         ; (sp)=OUTPUT 1/0
               cmp r2, #1
-              bne pass3
-              jmp chkPrint
-pass3:
+              beq chkPrint
 
         ;;;;;; CRACK CALL
 
@@ -321,11 +276,15 @@ pass3:
               tst (sp)+
               mov (sp)+, r2          ; r2 = first parameter address
 
+              mov r3, -(sp)          ; environment safty
+              mov r4, -(sp)
+              mov r5, -(sp)
+
               clr -(sp)
               mov r2, -(sp)           ; r2 = parameter's address
               jsr pc, prmToOcCmd
               tst (sp)+
-              movb (sp)+, IMG1Rows
+              mov (sp)+, r3           ; r3 = nRows value
 
               tst -(sp)
               mov r2, -(sp)          ; r2 = first parameter address
@@ -337,7 +296,7 @@ pass3:
               mov r2, -(sp)           ; r2 = parameter's address
               jsr pc, prmToOcCmd
               tst (sp)+
-              movb (sp)+, IMG1Cols
+              mov (sp)+, r4           ; r4 = nCols value
 
               tst -(sp)
               mov r2, -(sp)          ; r2 = second parameter address
@@ -349,107 +308,15 @@ pass3:
               mov r2, -(sp)           ; r2 = parameter's address
               jsr pc, prmToOcCmd
               tst (sp)+
-              movb (sp)+, KeyMaxSize
-
-              mov #crkPrmt1, -(sp)
-              mov #1, -(sp)
-              jsr pc, printText
-              cmp (sp)+, (sp)+
-
-              mov #IMG1Cols, COLSADR
-              mov #IMG1Rows, ROWSADR
-
-              ;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov #TEMPIMG, IMGIT
-              movb #3, Ctrl
-              jmp cmdInpFinish
-              ;;;;;;;;;;;;;;;;;;;;;;;;;
-
-finCrk1:      mov r5, -(sp)
-
-              clr r5
-              movb IMG1Cols, r5
-              mov r4, -(sp)
-              clr r4
-              movb IMG1Rows, r4
-              mul r4, r5
-              mov (sp)+, r4
-
-              mov r5, -(sp)             ; r5=dimenstions
-              mov #IMG1, -(sp)
-              jsr pc, parseImg
-              cmp (sp)+, (sp)+
-
-              mov r5, -(sp)             ; r5=dimenstions
-              mov #IMG1, -(sp)          ; img to convert from asci to octal
-              jsr pc, asciToOc
-              cmp (sp)+, (sp)+
-
-              mov (sp)+, r5
-
-              mov #crkPrmt2, -(sp)
-              mov #1, -(sp)
-              jsr pc, printText
-              cmp (sp)+, (sp)+
-
-              ;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov #TEMPIMG, IMGIT
-              movb #4, Ctrl
-              mov #101, tks
-              rti
-              ;;;;;;;;;;;;;;;;;;;;;;;;;
-
-finCrk2:      mov r5, -(sp)
-
-              clr r5
-              movb IMG1Cols, r5
-              mov r4, -(sp)
-              clr r4
-              movb IMG1Rows, r4
-              mul r4, r5
-              mov (sp)+, r4
-
-              mov r5, -(sp)             ; r5=dimenstions
-              mov #IMG2, -(sp)
-              jsr pc, parseImg
-              cmp (sp)+, (sp)+
-
-              mov r5, -(sp)             ; r5=dimenstions
-              mov #IMG2, -(sp)          ; img to convert from asci to octal
-              jsr pc, asciToOc
-              cmp (sp)+, (sp)+
-
-              mov r5, (sp)+
+              mov (sp)+, r5           ; r5 = key's max size
 
               mov #1, -(sp)
               jsr pc, setPrio        ; change priority level from 4 to 1
               tst (sp)+
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        mov #cmdPrmt, -(sp)
-        mov #newLinePrmt, -(sp)
-        mov #2, -(sp)
-        jsr pc, printText
-        cmp (sp)+, (sp)+
-        tst (sp)+
-
-        movb #0, Ctrl
-        mov #TEMPCMD, CMDIT
-        mov #101, tks
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-              mov r2, -(sp)          ; environment safty
-              mov r4, -(sp)
-              mov r5, -(sp)
-              clr r2
-              clr r4
-              clr r5
-              movb IMG1Rows, r2
-              movb IMG1Cols, r4
-              movb KeyMaxSize, r5
-
-              ash #8, r2
-              mov r2, -(sp)           ; r2=nRows
+              mov #imgInput, 60        ; change input vector for crack
+              ash #8, r3
+              mov r3, -(sp)           ; r3=nRows
               movb r4, (sp)           ; r4=nCols
               mov r5, -(sp)           ; r5=key's max size
               mov sp, -(sp)
@@ -459,6 +326,7 @@ finCrk2:      mov r5, -(sp)
               jsr pc, cmdCrack          ; pushed nRows and nCols by address in stack
               cmp (sp)+, (sp)+
               cmp (sp)+, (sp)+
+              mov #cmdInput, 60        ; restore to main input vector
 
               mov #4, -(sp)
               jsr pc, setPrio        ; change priority level from 1 to 4
@@ -466,33 +334,9 @@ finCrk2:      mov r5, -(sp)
 
               mov (sp)+, r5           ; restore registers from outside
               mov (sp)+, r4
-              mov (sp)+, r2
+              mov (sp)+, r3
 
-              cmpb Ctrl, #0
-              bne cont1
-dollar:       bit #200, tps
-              beq dollar
-              mov #'$, tpb
-space:        bit #200, tps
-              beq space
-              mov #40, tpb
-              mov #101, tks
-              rti
-cont1:        mov r1, -(sp)
-              mov r2, -(sp)
-              mov IMGIT, r1
-              mov #TEMPIMG, r2
-cont2:        cmp r1, #TEMPIMG
-              beq cont3
-print:        bit #200, tps
-              beq print
-              movb (r2)+, tpb
-              dec r1
-              br cont2
-cont3:        mov (sp)+, r2
-              mov (sp)+, r1
-              mov #101, tks
-              rti
+              jmp clrFinishCmd
 
 chkPrint:     mov #CMDLINE, -(sp)
               jsr r2, cmpStr
@@ -542,7 +386,17 @@ chkFail:      mov #dotPrmt, -(sp)
 
 cmdEnc: ; 2(sp) - nCols, 4(sp) - nRows
 
+      movb @2(sp), IMG3Cols
+      movb @4(sp), IMG3Rows
+      mov #IMG3Cols, COLSADR
+      mov #IMG3Rows, ROWSADR
+
       mov r5, -(sp)
+
+      mov #encPrmt1, -(sp)
+      mov #1, -(sp)
+      jsr pc, printText
+      cmp (sp)+, (sp)+
 
       clr r5
       movb @4(sp), r5         ; 4(sp) = nCols
@@ -552,9 +406,20 @@ cmdEnc: ; 2(sp) - nCols, 4(sp) - nRows
       mul r4, r5
       mov (sp)+, r4
 
-      ;;;;;;;;;;;;;;;;;;;;; input was here
-
-      ;;;;;;;;;;;;;;;;;;;;; input was here
+      mov r0, -(sp)
+      mov #TEMPIMG, r0
+      bis #1, tps
+      mov #101, tks
+      mov #0, -(sp)
+      jsr pc, setPrio        ; change priority level from 2 to 0
+      tst (sp)+
+encLoop: wait
+      bit #1, tks
+      bne encLoop
+      mov #2, -(sp)
+      jsr pc, setPrio        ; restore priority level from 0 to 2
+      tst (sp)+
+      mov (sp)+, r0
 
       mov r5, -(sp)             ; r5=dimenstions
       mov #IMG3, -(sp)
@@ -587,6 +452,7 @@ cmdEnc: ; 2(sp) - nCols, 4(sp) - nRows
       cmp (sp)+, (sp)+
       tst (sp)+
 
+
 mov (sp)+, r5
 rts pc
 
@@ -610,47 +476,32 @@ imgInput: ; using r0 for chars iterator on TEMPIMG
 
               cmp r1, #'\b
               bne imgInpEnter
-              cmp IMGIT, #TEMPIMG      ; r3=dymanic Img's addres
+              cmp r0, #TEMPIMG      ; r0=dymanic Img's addres
               beq imgInpFinish
-              mov IMGIT, r2          ; r3=dymanic Img's addres
+              mov r0, r2          ; r0=dymanic Img's addres
               cmpb -(r2), #'\r
               beq imgInpFinish
-              dec IMGIT
-              movb #0, @IMGIT       ; r3=dymanic Img's Address
+              dec r0
+              movb #0, (r0)       ; r0=dymanic Img's Address
               br imgInpPrint
 
 imgInpEnter:  cmp r1, #'\r        ; is Enter?
               bne imgInpUpdate
               tst -(sp)               ; OUTPUT
-              mov IMGIT, -(sp)       ; r3=dynamic Img address
+              mov r0, -(sp)       ; r0=dynamic Img address
               mov #TEMPIMG, -(sp)
               jsr pc, imgInpCount
               cmp (sp)+, (sp)+
               mov (sp)+, r2
               cmp r2, r5        ; r5=dimensions
-              blo imgPrintLF
-              ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-              mov (sp)+, r5
-              mov (sp)+, r2
-              mov (sp)+, r1
-              cmpb #1, Ctrl
-              bne pass4
-              jmp finEnc
-pass4:        cmpb #2, Ctrl
-              bne pass5
-              jmp finDec
-pass5:        cmpb #3, Ctrl
-              bne pass6
-              jmp finCrk1
-pass6:        jmp finCrk2       ; Ctrl=4
-              ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+              bhis imgIpEnd
 imgPrintLF:   bit #200, tps
               beq imgPrintLF
               mov #'\n, tpb
               br imgInpUpdate
 
-imgInpUpdate: movb r1, @IMGIT     ; r3=Img's address
-              inc IMGIT
+imgInpUpdate: movb r1, (r0)     ; r0=Img's address
+              inc r0
               br imgInpPrint
 
 imgIpBS1:     mov #40, r1         ; 40=" "
@@ -669,7 +520,7 @@ imgInpPrint:  bit #200, tps
               bne imgInpFinish
               br imgIpBS1
 
-imgInpFinish: mov #101, tks
+imgInpFinish: inc tks
 imgIpEnd:     mov (sp)+, r5
               mov (sp)+, r2
               mov (sp)+, r1
@@ -761,7 +612,17 @@ Pnewcrline:
 
 cmdCrack: ; 2(sp) - nCols , 4(sp) - nRows, 6(sp) - key's max size
 
+      movb @2(sp), IMG1Cols
+      movb @4(sp), IMG1Rows
+      mov #IMG1Cols, COLSADR
+      mov #IMG1Rows, ROWSADR
+
       mov r5, -(sp)
+
+      mov #crkPrmt1, -(sp)
+      mov #1, -(sp)
+      jsr pc, printText
+      cmp (sp)+, (sp)+
 
       clr r5
       movb @4(sp), r5         ; 4(sp) = nCols
@@ -771,18 +632,73 @@ cmdCrack: ; 2(sp) - nCols , 4(sp) - nRows, 6(sp) - key's max size
       mul r4, r5
       mov (sp)+, r4
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      mov r0, -(sp)
+      mov #TEMPIMG, r0
+      bis #1, tps
+      mov #101, tks
+crkLoop1: wait
+      bit #1, tks
+      bne crkLoop1
+      mov (sp)+, r0
+
+      mov r5, -(sp)             ; r5=dimenstions
+      mov #IMG1, -(sp)
+      jsr pc, parseImg
+      cmp (sp)+, (sp)+
+
+      mov r5, -(sp)             ; r5=dimenstions
+      mov #IMG1, -(sp)          ; img to convert from asci to octal
+      jsr pc, asciToOc
+      cmp (sp)+, (sp)+
+
+      mov #crkPrmt2, -(sp)
+      mov #1, -(sp)
+      jsr pc, printText
+      cmp (sp)+, (sp)+
+
+      mov r0, -(sp)
+      mov #TEMPIMG, r0
+      bis #1, tps
+      mov #101, tks
+crkLoop2: wait
+      bit #1, tks
+      bne crkLoop2
+      mov (sp)+, r0
+
+      mov r5, -(sp)             ; r5=dimenstions
+      mov #IMG2, -(sp)
+      jsr pc, parseImg
+      cmp (sp)+, (sp)+
+
+      mov r5, -(sp)             ; r5=dimenstions
+      mov #IMG2, -(sp)          ; img to convert from asci to octal
+      jsr pc, asciToOc
+      cmp (sp)+, (sp)+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      mov #cmdPrmt, -(sp)
+      mov #newLinePrmt, -(sp)
+      mov #2, -(sp)
+      jsr pc, printText
+      cmp (sp)+, (sp)+
+      tst (sp)+
 
-      mov 10(sp), -(sp)         ; 10(sp)=key's max size
+      mov #cmdInput, 60        ; change to main input vector
+      mov r0, -(sp)
+      mov #TEMPCMD, r0
+      mov #IMG3Cols, COLSADR
+      mov #IMG3Rows, ROWSADR
+      mov #101, tks
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+      mov 12(sp), -(sp)         ; 12(sp)=key's max size
       jsr pc, crkGenKey
       tst (sp)+
 
       mov #IMG1, -(sp)
       mov #IMG2, -(sp)
-      mov 12(sp), -(sp)          ; 12(sp)=nRows
-      mov 12(sp), -(sp)          ; 12(sp)=nCols
+      mov 14(sp), -(sp)          ; 14(sp)=nRows
+      mov 14(sp), -(sp)          ; 14(sp)=nCols
       mov #Hash, -(sp)
       jsr pc, crkSystem
       add #12, sp
@@ -795,6 +711,9 @@ cmdCrack: ; 2(sp) - nCols , 4(sp) - nRows, 6(sp) - key's max size
       mov #KeyStr, -(sp)          ; KeyStr to convert from octal to ascii
       jsr pc, ocToAsci
       cmp (sp)+, (sp)+
+
+      dec tks
+      mov (sp)+, r0
 
       mov #newLinePrmt, -(sp)
       mov #KeyStr, -(sp)
@@ -1085,7 +1004,17 @@ SHend:        .ascii        <\n\r&>
 
 cmdDec: ; 2(sp) - nCols, 4(sp) - nRows
 
+      movb @2(sp), IMG3Cols
+      movb @4(sp), IMG3Rows
+      mov #IMG3Cols, COLSADR
+      mov #IMG3Rows, ROWSADR
+
       mov r5, -(sp)
+
+      mov #decPrmt1, -(sp)
+      mov #1, -(sp)
+      jsr pc, printText
+      cmp (sp)+, (sp)+
 
       clr r5
       movb @4(sp), r5         ; 4(sp) = nCols
@@ -1095,9 +1024,20 @@ cmdDec: ; 2(sp) - nCols, 4(sp) - nRows
       mul r4, r5
       mov (sp)+, r4
 
-      ;;;;;;;;;;;;;;;;;;;;;; input was here
-
-      ;;;;;;;;;;;;;;;;;;;;;; input was here
+      mov r0, -(sp)
+      mov #TEMPIMG, r0
+      bis #1, tps
+      mov #101, tks
+      mov #0, -(sp)
+      jsr pc, setPrio        ; change priority level from 2 to 0
+      tst (sp)+
+Decloop: wait
+      bit #1, tks
+      bne Decloop
+      mov #2, -(sp)
+      jsr pc, setPrio        ; restore priority level from 0 to 2
+      tst (sp)+
+      mov (sp)+, r0
 
       mov r5, -(sp)             ; r5=dimenstions
       mov #IMG3, -(sp)
@@ -1366,6 +1306,11 @@ setPrio:  mov r1, -(sp)
           mov r1, 4(sp)
 
           mov (sp)+, r1
+          rti
+
+inp:      mov #1, @#tps
+          mov @#tkb, @#tpb
+          inc @#tks
           rti
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1932,11 +1877,7 @@ IMG1Cols: .byte 0
 IMG1Rows: .byte 0
 IMG3Cols: .byte 0
 IMG3Rows: .byte 0
-KeyMaxSize: .byte 0
-Ctrl: .byte 0
 .even
-IMGIT: .word 0
-CMDIT: .word 0
 ROWSADR: .word 0
 COLSADR: .word 0
 TEMPCMD: .blkw 50

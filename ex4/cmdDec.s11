@@ -18,6 +18,9 @@ jmp finish
 
 cmdDec: ; 2(sp) - nCols, 4(sp) - nRows
 
+      movb @2(sp), IMG3Cols
+      movb @4(sp), IMG3Rows
+
       mov r5, -(sp)
 
       mov #decPrmt1, -(sp)
@@ -801,6 +804,9 @@ KeyUse:
   node4:  .word 3, node5
   node5:  .word 0, node6
   node6:  .word -1, 0
+.even
+IMG3Cols: .byte 0
+IMG3Rows: .byte 0
 .even
 IMG3: .blkw 1000
 TEMPIMG: .blkw 1000

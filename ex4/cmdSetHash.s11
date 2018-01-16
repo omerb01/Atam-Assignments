@@ -47,13 +47,11 @@ SHupdateHash: movb (r3)+, (r2)+
               jsr pc, printText
               cmp (sp)+, (sp)+
               cmp (sp)+, (sp)+
-.even
               rts pc
-
-
-
 SHstr:        .ascii        <Hash function set to &>
 SHend:        .ascii        <\n\r&>
+.even
+
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .even
