@@ -54,15 +54,29 @@ bb_w:     tstb @#tps
 dotprint: mov #'., @#tpb
 ib_w:     tstb @#tps
           bpl ib_w
-          mov @#rate, r2
-          sub @#timepass, r2
-          mov r2, r3
+;~~~~~~~ prints time left ~~~~~~~~~~~~~
+          mov #23420, -(sp)
+          mov r4, -(sp)
+          mov @#timepass, r2
+divmils:  mov r2, r3
           clr r2
-          div #144, r2
-          add #60, r2
+          div 2(sp), r2
+          cmp r2, #0
+          bne milprint
+          mov r3, r4
+          clr r2
+          mov 2(sp), r3
+          div #12, r2
+          mov r2, 2(sp)
+          mov r4, r2
+          br divmils
+milprint: add #60, r2
           mov r2, @#tpb
 qb_w:     tstb @#tps
           bpl qb_w
+          mov (sp)+, r4
+          tst (sp)+
+
 
           mov #str3, -(sp)          ;prints "sec"
           mov #1, -(sp)
@@ -74,8 +88,6 @@ qb_w:     tstb @#tps
           rti
 
 stop:     halt
-;clr @#seconds
-;clr @#timepass
 
 ; receives:
 ; return address
