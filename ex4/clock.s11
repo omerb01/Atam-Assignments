@@ -17,14 +17,16 @@ l:      wait
         wait
         br l
 
-isec:   inc @#seconds
-        clr @#timepass
-        br l
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 clock:  inc @#timepass                ;clock procedure
         cmp @#timepass, @#rate
         beq isec
         rti
+
+isec:   inc @#seconds
+        clr @#timepass
+        br l
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; #str -> command name, should be delivered via adderss or other method
 ; change the funtion below to procedure from interuppt
