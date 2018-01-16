@@ -14,6 +14,7 @@ main: mov #main, sp
       mov #100, lcs
 
 l:      wait
+        wait
         br l
 
 isec:   inc @#seconds
@@ -42,9 +43,15 @@ inp:      mov #0, @#lcs             ;should be removed
           cmp (sp)+, (sp)+
 
           mov @#seconds, -(sp)        ;prints seconds in format "...x.x"
+          cmp @#seconds, #0
+          beq printz
           jsr pc, numPrintAsci
           tst (sp)+
-          mov #'., @#tpb
+          br dotprint
+printz:   mov #60, @#tpb
+bb_w:     tstb @#tps
+          bpl bb_w
+dotprint: mov #'., @#tpb
 ib_w:     tstb @#tps
           bpl ib_w
           mov @#rate, r2
@@ -67,8 +74,8 @@ qb_w:     tstb @#tps
           rti
 
 stop:     halt
-          ;clr @#seconds
-          ;clr @#timepass
+;clr @#seconds
+;clr @#timepass
 
 ; receives:
 ; return address
@@ -78,36 +85,58 @@ numPrintAsci:  mov #23420, -(sp)   ; devider for digits seperation
             mov 4(sp), -(sp)    ; push the number to convert again
             mov r2, -(sp)       ; temp
             mov r3, -(sp)
+            mov 6(sp), -(sp)
 devide:     clr r2
-            cmp 4(sp), #0
+            cmp 6(sp), #0
             beq nfinish
-            mov 4(sp), r3        ;move number to r2
-            div 6(sp), r2
+            mov 6(sp), r3        ;move number to r2
+            div 10(sp), r2
             tst r2
             beq keepdevide
 printnum:   add #60, r2
             movb r2, @#tpb
 nb_w:       tstb @#tps
             bpl nb_w
-            mov r3, 4(sp)
+            cmp r2, #0
+            beq iszero
+            cmp r3, #0
+            bne iszero
+            cmp 6(sp), #0
+            beq iszero
+            ;800
+print_zero: mov #12, 10(sp)
+dagain:     mov 6(sp), r3
+            clr r2
+            div 10(sp), r2
+            cmp r3, #0
+            bne nfinish
+            mov #60, @#tpb
+zb_w:       tstb @#tps
+            bpl zb_w
+            mov r2, 6(sp)
+            br dagain
+
+iszero:
+            mov r3, 6(sp)
             br devide
-keepdevide: mov 6(sp), r3
+keepdevide: mov 10(sp), r3
             clr r2
             div #12, r2
-            mov r2, 6(sp)
-            cmp 6(sp), #1
+            mov r2, 10(sp)
+            cmp 10(sp), #1
             beq nclear
             br devide
-nclear:     mov 4(sp), r2
-            clr 4(sp)
+nclear:     mov 6(sp), r2
+            clr 6(sp)
             br printnum
 
 
-nfinish:    mov (sp)+, r3
+nfinish:    mov (sp)+, r4
+            mov (sp)+, r3
             mov (sp)+, r2
             cmp (sp)+, (sp)+
             rts pc
-
+done: halt
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~``
 
 ; recevies num of args to print, then the string addresses
@@ -147,6 +176,6 @@ str2: .ascii< completed in &>
 .even
 str1: .ascii<crack&>
 str3: .ascii<sec&>
-timepass: .word 0                   ;global variable
-seconds: .word 0                ;global variable
+timepass: .word 0.                   ;global variable
+seconds: .word 0.                ;global variable
 rate: .word 1000.               ;provided by the test
