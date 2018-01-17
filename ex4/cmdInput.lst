@@ -1,0 +1,2702 @@
+Technion Computer Science Department -- PDP/11 X-Assembler Version (5.5) AA.
+
+
+	S O U R C E    F I L E    :    D:\workspace\Atom\234118\ex4\cmdInput.s11
+	========================================================================
+
+000000                             1     tks = 177560
+000000                             2     tkb = 177562
+000000                             3     tps = 177564
+000000                             4     tpb = 177566
+000000                             5     lcs = 177546
+                                   6     
+000000                             7     .= torg + 60
+000060   001070 000200             8     .word cmdInput, 200
+                                   9     
+000064                            10     .= torg + 100
+000100   004370 000300            11     .word clock, 300
+                                  12     
+000104                            13     .= torg + 1000
+001000   012706 001000            14     main: mov #main, sp
+                                  15     
+001004   012746 013021            16           mov #cmdPrmt, -(sp)         ; cmdPrmt="$ "
+001010   012746 013006            17           mov #mainPrmt, -(sp)        ; mainPrmt="Welcome!"
+001014   012746 000002            18           mov #2, -(sp)               ; num of strings to print
+001020   004767 011316            19           jsr pc, printText
+001024   022626                   20           cmp (sp)+, (sp)+
+001026   005726                   21           tst (sp)+
+                                  22     
+001030   012767 013450 012404     23           mov #TEMPCMD, CMDIT         ; init TEMPCMD dynamic end address
+001036   052767 000001 176520     24           bis #1, tps
+001044   012767 000101 176506     25           mov #101, tks               ; turning on keyboard interupt
+                                  26     
+001052   000001                   27     loop: wait                        ; waiting for keyboard interupt
+001054   032767 000001 176476     28           bit #1, tks                 ; if tks is down than end the program ("quit" command)
+001062   001373                   29           bne loop
+                                  30     
+001064   000167 011714            31           jmp finish
+                                  32     
+001070                            33     cmdInput: ; using CMDIT for chars iterator on TEMPCMD
+                                  34     ; this is the main program which gets chars and stores them in TEMPCMD
+                                  35     ; after analizing the command, the relevant subrutine is called
+                                  36     
+001070   126727 012342 000000     37           cmpb Ctrl, #0       ; check if current state is "commands input"
+001076   001402                   38           beq pass2
+001100   000167 004730            39           jmp imgInput
+001104                            40     pass2:
+001104   010146                   41           mov r1, -(sp)
+001106   010246                   42           mov r2, -(sp)
+                                  43     
+001110   005001                   44           clr r1
+001112   116701 176444            45           movb tkb, r1            ; gets the given char and stores it in r1
+                                  46     
+001116   020127 000010            47                   cmp r1, #'\b
+001122   001012                   48                   bne cmdInpEnter
+001124   026727 012312 013450     49                   cmp CMDIT, #TEMPCMD      ; CMDIT=dymanic cmd's addres
+001132   001521                   50                   beq cmdInpFinish
+001134   005367 012302            51                   dec CMDIT
+001140   112777 000000 012274     52                   movb #0, @CMDIT       ; CMDIT=dymanic cmd's Address
+001146   000460                   53                   br cmdInpPrint
+                                  54     
+001150   020127 000015            55     cmdInpEnter:  cmp r1, #'\r        ; is Enter?
+001154   001027                   56                   bne cmdInpUpdate
+001156   032767 000200 176400     57     cmdPrtLF:     bit #200, tps         ; prints new line if an Enter was given
+001164   001774                   58                   beq cmdPrtLF
+001166   012767 000012 176372     59                   mov #'\n, tpb
+001174   032767 000200 176362     60     cmdPrtCR:     bit #200, tps
+001202   001774                   61                   beq cmdPrtCR
+001204   012767 000015 176354     62                   mov #'\r, tpb
+001212   112777 000046 012222     63                   movb #'&, @CMDIT     ; set "&" at the end of the given command
+001220   005267 012216            64                   inc CMDIT
+001224   004767 011420            65                   jsr pc, parseCmd      ; transfer all data from TEMPCMD to CMDLINE without spaces in format: "encode&4&10&@"
+001230   000167 000176            66                   jmp FUNCS             ; all functions are treated at FUNCS label
+                                  67     
+001234   110177 012202            68     cmdInpUpdate: movb r1, @CMDIT     ; CMDIT=dynamic cmd's address
+001240   005267 012176            69                   inc CMDIT
+001244   000421                   70                   br cmdInpPrint
+                                  71     
+001246   012701 000040            72     cmdIpBS1:     mov #40, r1         ; if Backspace was given, than prints prints \b than " " than \b again
+001252   032767 000200 176304     73                   bit #200, tps
+001260   001772                   74                   beq cmdIpBS1
+001262   010167 176300            75                   mov r1, tpb
+001266   012701 000010            76     cmdIpBS2:     mov #'\b, r1
+001272   032767 000200 176264     77                   bit #200, tps
+001300   001772                   78                   beq cmdIpBS2
+001302   010167 176260            79                   mov r1, tpb
+001306   000433                   80                   br cmdInpFinish
+001310   032767 000200 176246     81     cmdInpPrint:  bit #200, tps
+001316   001774                   82                   beq cmdInpPrint
+001320   010167 176242            83                   mov r1, tpb
+001324   020127 000010            84                   cmp r1, #'\b
+001330   001022                   85                   bne cmdInpFinish
+001332   000745                   86                   br cmdIpBS1
+                                  87     
+001334   012767 013450 012100     88     clrFinishCmd: mov #TEMPCMD, CMDIT        ; init TEMPCMD pointer to the beggining after command has been proccessed
+001342   032767 000200 176214     89     finLoop1:     bit #200, tps              ; for getting the next command
+001350   001774                   90                   beq finLoop1
+001352   012767 000044 176206     91                   mov #'$, tpb
+001360   032767 000200 176176     92     finLoop2:     bit #200, tps               ; prints "$ " in the begging of the line before letting the user call another command
+001366   001774                   93                   beq finLoop2
+001370   012767 000040 176170     94                   mov #40, tpb
+001376   012767 000101 176154     95     cmdInpFinish: mov #101, tks
+001404   126727 012026 177777     96                   cmpb Ctrl, #-1              ; if Ctrl is -1 than do "rti" without restoring r1, r2 because is was restored once before
+001412   001004                   97                   bne cmdIpEnd                ; Ctrl=-1 when a sub complex command is ended: encode, decode
+001414   112767 000000 012014     98                   movb #0, Ctrl
+001422   000002                   99                   rti
+001424   012602                  100     cmdIpEnd:     mov (sp)+, r2
+001426   012601                  101                   mov (sp)+, r1
+001430   000002                  102                   rti
+                                 103     
+                                 104       ;;;;;;;;; FUNCTIONS CALLS: ;;;;;;;;;;;;
+                                 105     
+001432                           106     FUNCS:
+001432   012746 013570           107     chkEncode:    mov #CMDLINE, -(sp)
+001436   004267 011000           108                   jsr r2, cmpStr        ; checks if the given command is "encode"
+001442      145    156    143    109                   .ascii <encode&>
+            157    144    145            
+            046                          
+001451      000                  110                   .even
+001452   012602                  111                   mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+001454   020227 000001           112                   cmp r2, #1
+001460   001544                  113                   beq chkDecode         ; if not "encode" than check if "decode"
+                                 114     
+                                 115             ;;;;;; ENCODE CALL:
+                                 116     
+001462   026727 015026 000001    117                   cmp clkctrl, #1
+001470   001003                  118                   bne clk1
+001472   012767 000002 015014    119                   mov #2, clkctrl
+001500   004767 003006           120     clk1:         jsr pc, clockON
+                                 121     
+001504   005746                  122                   tst -(sp)
+001506   012746 013570           123                   mov #CMDLINE, -(sp)
+001512   004767 011062           124                   jsr pc, nextArgCmd      ; gets the next word seperated by " " in the given command
+001516   005726                  125                   tst (sp)+
+001520   012602                  126                   mov (sp)+, r2          ; r2 = first parameter address
+                                 127     
+001522   005046                  128                   clr -(sp)
+001524   010246                  129                   mov r2, -(sp)           ; r2 = parameter's address
+001526   004767 007154           130                   jsr pc, prmToOcCmd      ; converts parameter from ascii to octal num
+001532   005726                  131                   tst (sp)+
+001534   112667 011674           132                   movb (sp)+, IMG3Rows
+                                 133     
+001540   005746                  134                   tst -(sp)
+001542   010246                  135                   mov r2, -(sp)          ; r2 = first parameter address
+001544   004767 011030           136                   jsr pc, nextArgCmd    ; gets the next word seperated by " " in the given command
+001550   005726                  137                   tst (sp)+
+001552   012602                  138                   mov (sp)+, r2          ; r2 = second parameter address
+                                 139     
+001554   005046                  140                   clr -(sp)
+001556   010246                  141                   mov r2, -(sp)           ; r2 = parameter's address
+001560   004767 007122           142                   jsr pc, prmToOcCmd      ; converts parameter from ascii to octal num
+001564   005726                  143                   tst (sp)+
+001566   112667 011641           144                   movb (sp)+, IMG3Cols
+                                 145     
+001572   012746 013064           146                   mov #encPrmt1, -(sp)    ; encPrmt1="Please enter image to encode"
+001576   012746 000001           147                   mov #1, -(sp)
+001602   004767 010534           148                   jsr pc, printText
+001606   022626                  149                   cmp (sp)+, (sp)+
+                                 150     
+001610   012767 013433 011630    151                   mov #IMG3Cols, COLSADR    ; init COLSADR and ROWSADR for imgInput to know
+001616   012767 013434 011620    152                   mov #IMG3Rows, ROWSADR    ; dimentions the current given IMG
+                                 153     
+                                 154                   ;;;;;;;;;;;;;;;;;;;;;;;;;
+001624   012767 014514 011606    155                   mov #TEMPIMG, IMGIT         ; init IMG iterator
+001632   112767 000001 011576    156                   movb #1, Ctrl               ; sets Ctrl symbolize encode proccess
+001640   000167 177532           157                   jmp cmdInpFinish            ; end interupt, next call will be at imgInput
+                                 158                   ;;;;;;;;;;;;;;;;;;;;;;;;;
+                                 159     
+                                 160                                               ; gets here when finished to get all bytes in the image
+001644   010346                  161     finEnc:       mov r3, -(sp)          ; environment safty
+001646   010446                  162                   mov r4, -(sp)
+001650   005003                  163                   clr r3
+001652   005004                  164                   clr r4
+001654   116703 011554           165                   movb IMG3Rows, r3
+001660   116704 011547           166                   movb IMG3Cols, r4
+                                 167     
+001664   072327 000010           168                   ash #8, r3
+001670   010346                  169                   mov r3, -(sp)           ; r3=nRows
+001672   110416                  170                   movb r4, (sp)           ; r4=nCols
+001674   010646                  171                   mov sp, -(sp)           ; push nRows and nCols to stack and transfer the address of it to cmdEnc
+001676   005216                  172                   inc (sp)
+001700   010646                  173                   mov sp, -(sp)
+001702   062716 000002           174                   add #2, (sp)
+001706   004767 003742           175                   jsr pc, cmdEnc          ; start Encode proccess
+001712   022626                  176                   cmp (sp)+, (sp)+
+001714   005726                  177                   tst (sp)+
+                                 178     
+001716   012604                  179                   mov (sp)+, r4            ; restore registers from outside
+001720   012603                  180                   mov (sp)+, r3
+                                 181     
+001722   026727 014566 000002    182                   cmp clkctrl, #2
+001730   001403                  183                   beq clk2
+001732   004767 002564           184                   jsr pc, clockOFF
+001736   000403                  185                   br clkcont1
+001740   012767 000001 014546    186     clk2:         mov #1, clkctrl
+                                 187     
+001746   012746 013570           188     clkcont1:     mov #CMDLINE, -(sp)
+001752   004767 002744           189                   jsr pc, printClock
+001756   005726                  190                   tst (sp)+
+                                 191     
+001760   112767 177777 011450    192                   movb #-1, Ctrl           ; Ctrl=-1 when decode or encode in ended
+001766   000167 177342           193                   jmp clrFinishCmd
+                                 194     
+001772   012746 013570           195     chkDecode:    mov #CMDLINE, -(sp)
+001776   004267 010440           196                   jsr r2, cmpStr            ; checks if the given command is "decode"
+002002      144    145    143    197                   .ascii <decode&>
+            157    144    145            
+            046                          
+002011      000                  198                   .even
+002012   012602                  199                   mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+002014   020227 000001           200                   cmp r2, #1
+002020   001544                  201                   beq chkHash               ; if not, check if it is "Hash"
+                                 202     
+                                 203             ;;;;;; DECODE CALL
+                                 204     
+002022   026727 014466 000001    205                   cmp clkctrl, #1
+002030   001003                  206                   bne clk4
+002032   012767 000002 014454    207                   mov #2, clkctrl
+002040   004767 002446           208     clk4:         jsr pc, clockON
+                                 209     
+002044   005746                  210                   tst -(sp)
+002046   012746 013570           211                   mov #CMDLINE, -(sp)
+002052   004767 010522           212                   jsr pc, nextArgCmd          ; gets the next word in the given command
+002056   005726                  213                   tst (sp)+
+002060   012602                  214                   mov (sp)+, r2          ; r2 = first parameter address
+                                 215     
+002062   005046                  216                   clr -(sp)
+002064   010246                  217                   mov r2, -(sp)           ; r2 = parameter's address
+002066   004767 006614           218                   jsr pc, prmToOcCmd        ; converts the given parameter from ascii to octal num
+002072   005726                  219                   tst (sp)+
+002074   112667 011334           220                   movb (sp)+, IMG3Rows           ; r3 = nRows value
+                                 221     
+002100   005746                  222                   tst -(sp)
+002102   010246                  223                   mov r2, -(sp)          ; r2 = first parameter address
+002104   004767 010470           224                   jsr pc, nextArgCmd    ; gets the next word in the given command
+002110   005726                  225                   tst (sp)+
+002112   012602                  226                   mov (sp)+, r2          ; r2 = second parameter address
+                                 227     
+002114   005046                  228                   clr -(sp)
+002116   010246                  229                   mov r2, -(sp)           ; r2 = parameter's address
+002120   004767 006562           230                   jsr pc, prmToOcCmd        ; converts the given parameter from ascii to octal num
+002124   005726                  231                   tst (sp)+
+002126   112667 011301           232                   movb (sp)+, IMG3Cols           ; r4 = nCols value
+                                 233     
+002132   012746 013155           234                   mov #decPrmt1, -(sp)       ;  decPrmt1="Please enter image to decode"
+002136   012746 000001           235                   mov #1, -(sp)
+002142   004767 010174           236                   jsr pc, printText
+002146   022626                  237                   cmp (sp)+, (sp)+
+                                 238     
+002150   012767 013433 011270    239                   mov #IMG3Cols, COLSADR          ; init COLSADR and ROWSADR for imgInput
+002156   012767 013434 011260    240                   mov #IMG3Rows, ROWSADR
+                                 241     
+                                 242                   ;;;;;;;;;;;;;;;;;;;;;;;;;
+002164   012767 014514 011246    243                   mov #TEMPIMG, IMGIT           ; init IMG iterator
+002172   112767 000002 011236    244                   movb #2, Ctrl                 ; sets Ctrl symbolize decode proccess
+002200   000167 177172           245                   jmp cmdInpFinish              ; end interupt, next call will be at imgInput
+                                 246                   ;;;;;;;;;;;;;;;;;;;;;;;;;
+                                 247     
+                                 248                                         ; gets here when IMG is ready
+002204   010346                  249     finDec:       mov r3, -(sp)          ; environment safty
+002206   010446                  250                   mov r4, -(sp)
+002210   005003                  251                   clr r3
+002212   005004                  252                   clr r4
+002214   116703 011214           253                   movb IMG3Rows, r3
+002220   116704 011207           254                   movb IMG3Cols, r4
+                                 255     
+002224   072327 000010           256                   ash #8, r3
+002230   010346                  257                   mov r3, -(sp)           ; r3=nRows
+002232   110416                  258                   movb r4, (sp)           ; r4=nCols
+002234   010646                  259                   mov sp, -(sp)
+002236   005216                  260                   inc (sp)
+002240   010646                  261                   mov sp, -(sp)
+002242   062716 000002           262                   add #2, (sp)
+002246   004767 005342           263                   jsr pc, cmdDec          ; pushed nRows and nCols by address in stack
+002252   022626                  264                   cmp (sp)+, (sp)+
+002254   005726                  265                   tst (sp)+
+                                 266     
+002256   012604                  267                   mov (sp)+, r4            ; restore registers from outside
+002260   012603                  268                   mov (sp)+, r3
+                                 269     
+002262   026727 014226 000002    270                   cmp clkctrl, #2
+002270   001403                  271                   beq clk5
+002272   004767 002224           272                   jsr pc, clockOFF
+002276   000403                  273                   br clkcont2
+002300   012767 000001 014206    274     clk5:         mov #1, clkctrl
+                                 275     
+002306   012746 013570           276     clkcont2:     mov #CMDLINE, -(sp)
+002312   004767 002404           277                   jsr pc, printClock
+002316   005726                  278                   tst (sp)+
+                                 279     
+002320   112767 177777 011110    280                   movb #-1, Ctrl           ; Ctrl=-1 when decode or encode in ended
+002326   000167 177002           281                   jmp clrFinishCmd
+                                 282     
+002332   012746 013570           283     chkHash:      mov #CMDLINE, -(sp)
+002336   004267 010100           284                   jsr r2, cmpStr          ; checks if the given command is "setHash"
+002342      163    145    164    285                   .ascii <setHash&>
+            110    141    163            
+            150    046                   
+002352                           286                   .even
+002352   012602                  287                   mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+002354   020227 000001           288                   cmp r2, #1
+002360   001445                  289                   beq chkKey              ; if not, than check if it is "setKey"
+                                 290     
+                                 291             ;;;;;; SETHASH CALL
+                                 292     
+002362   026727 014126 000001    293                   cmp clkctrl, #1
+002370   001003                  294                   bne clk6
+002372   012767 000002 014114    295                   mov #2, clkctrl
+002400   004767 002106           296     clk6:         jsr pc, clockON
+                                 297     
+002404   005746                  298                   tst -(sp)
+002406   012746 013570           299                   mov #CMDLINE, -(sp)
+002412   004767 010162           300                   jsr pc, nextArgCmd      ; gets the next word in the given command line
+002416   005726                  301                   tst (sp)+
+002420   012602                  302                   mov (sp)+, r2          ; r2 = first parameter address
+                                 303     
+002422   010246                  304                   mov r2, -(sp)          ; r2 = new Hash str address
+002424   004767 005010           305                   jsr pc, cmdSetHash      ; sets Hash label to the given Hash sequence
+002430   005726                  306                   tst (sp)+
+                                 307     
+002432   026727 014056 000002    308                   cmp clkctrl, #2
+002440   001403                  309                   beq clk7
+002442   004767 002054           310                   jsr pc, clockOFF
+002446   000403                  311                   br clkcont3
+002450   012767 000001 014036    312     clk7:         mov #1, clkctrl
+                                 313     
+002456   012746 013570           314     clkcont3:     mov #CMDLINE, -(sp)
+002462   004767 002234           315                   jsr pc, printClock
+002466   005726                  316                   tst (sp)+
+                                 317     
+002470   000167 176640           318                   jmp clrFinishCmd
+                                 319     
+002474   012746 013570           320     chkKey:       mov #CMDLINE, -(sp)
+002500   004267 007736           321                   jsr r2, cmpStr          ; chceks if the given command is "setKey"
+002504      163    145    164    322                   .ascii <setKey&>
+            113    145    171            
+            046                          
+002513      000                  323                   .even
+002514   012602                  324                   mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+002516   020227 000001           325                   cmp r2, #1
+002522   001445                  326                   beq chkCrack          ; if not, than check if it is "crack"
+                                 327     
+                                 328             ;;;;;; SETKEY CALL
+                                 329     
+002524   026727 013764 000001    330                   cmp clkctrl, #1
+002532   001003                  331                   bne clk8
+002534   012767 000002 013752    332                   mov #2, clkctrl
+002542   004767 001744           333     clk8:         jsr pc, clockON
+                                 334     
+002546   005746                  335                   tst -(sp)
+002550   012746 013570           336                   mov #CMDLINE, -(sp)
+002554   004767 010020           337                   jsr pc, nextArgCmd        ; gets the next word in the given command line
+002560   005726                  338                   tst (sp)+
+002562   012602                  339                   mov (sp)+, r2          ; r2 = first parameter address
+                                 340     
+002564   010246                  341                   mov r2, -(sp)          ; r2 = new Key str address
+002566   004767 004462           342                   jsr pc, cmdSetKey       ; sets a linked list of nums in "KeyUse" label which represents a key sequence
+002572   005726                  343                   tst (sp)+
+                                 344     
+002574   026727 013714 000002    345                   cmp clkctrl, #2
+002602   001403                  346                   beq clk9
+002604   004767 001712           347                   jsr pc, clockOFF
+002610   000403                  348                   br clkcont4
+002612   012767 000001 013674    349     clk9:         mov #1, clkctrl
+                                 350     
+002620   012746 013570           351     clkcont4:     mov #CMDLINE, -(sp)
+002624   004767 002072           352                   jsr pc, printClock
+002630   005726                  353                   tst (sp)+
+                                 354     
+002632   000167 176476           355                   jmp clrFinishCmd
+                                 356     
+002636   012746 013570           357     chkCrack:     mov #CMDLINE, -(sp)
+002642   004267 007574           358                   jsr r2, cmpStr          ; checks if the given command is "crack"
+002646      143    162    141    359                   .ascii <crack&>
+            143    153    046            
+002654                           360                   .even
+002654   012602                  361                   mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+002656   020227 000001           362                   cmp r2, #1
+002662   001002                  363                   bne pass3
+002664   000167 001000           364                   jmp chkPrint            ; if not, than check if it is "print"
+002670                           365     pass3:
+                                 366     
+                                 367             ;;;;;; CRACK CALL
+                                 368     
+002670   012767 000001 013616    369                   mov #1, clkctrl
+002676   004767 001610           370                   jsr pc, clockON
+                                 371     
+002702   005746                  372                   tst -(sp)
+002704   012746 013570           373                   mov #CMDLINE, -(sp)
+002710   004767 007664           374                   jsr pc, nextArgCmd        ; gets the next word in the given command line
+002714   005726                  375                   tst (sp)+
+002716   012602                  376                   mov (sp)+, r2          ; r2 = first parameter address
+                                 377     
+002720   005046                  378                   clr -(sp)
+002722   010246                  379                   mov r2, -(sp)           ; r2 = parameter's address
+002724   004767 005756           380                   jsr pc, prmToOcCmd        ; converts the parameter from ascii to octal num
+002730   005726                  381                   tst (sp)+
+002732   112667 010474           382                   movb (sp)+, IMG1Rows
+                                 383     
+002736   005746                  384                   tst -(sp)
+002740   010246                  385                   mov r2, -(sp)          ; r2 = first parameter address
+002742   004767 007632           386                   jsr pc, nextArgCmd      ; gets the next word in the given command line
+002746   005726                  387                   tst (sp)+
+002750   012602                  388                   mov (sp)+, r2          ; r2 = second parameter address
+                                 389     
+002752   005046                  390                   clr -(sp)
+002754   010246                  391                   mov r2, -(sp)           ; r2 = parameter's address
+002756   004767 005724           392                   jsr pc, prmToOcCmd       ; converts the parameter from ascii to octal num
+002762   005726                  393                   tst (sp)+
+002764   112667 010441           394                   movb (sp)+, IMG1Cols
+                                 395     
+002770   005746                  396                   tst -(sp)
+002772   010246                  397                   mov r2, -(sp)          ; r2 = second parameter address
+002774   004767 007600           398                   jsr pc, nextArgCmd      ; gets the next word in the given command line
+003000   005726                  399                   tst (sp)+
+003002   012602                  400                   mov (sp)+, r2          ; r2 = third parameter address
+                                 401     
+003004   005046                  402                   clr -(sp)
+003006   010246                  403                   mov r2, -(sp)           ; r2 = parameter's address
+003010   004767 005672           404                   jsr pc, prmToOcCmd       ; converts the parameter from ascii to octal num
+003014   005726                  405                   tst (sp)+
+003016   112667 010413           406                   movb (sp)+, KeyMaxSize
+                                 407     
+003022   012746 013275           408                   mov #crkPrmt1, -(sp)      ; crkPrmt1="Please enter image"
+003026   012746 000001           409                   mov #1, -(sp)
+003032   004767 007304           410                   jsr pc, printText
+003036   022626                  411                   cmp (sp)+, (sp)+
+                                 412     
+003040   012767 013431 010400    413                   mov #IMG1Cols, COLSADR        ; init COLSADR and ROWSADR for imgInput
+003046   012767 013432 010370    414                   mov #IMG1Rows, ROWSADR
+                                 415     
+                                 416                   ;;;;;;;;;;;;;;;;;;;;;;;;;
+003054   012767 014514 010356    417                   mov #TEMPIMG, IMGIT           ; init IMGIT iterator
+003062   112767 000003 010346    418                   movb #3, Ctrl                 ; Ctrl=3 when the first IMG for crack need to be proccess
+003070   000167 176302           419                   jmp cmdInpFinish
+                                 420                   ;;;;;;;;;;;;;;;;;;;;;;;;;
+                                 421     
+003074   010546                  422     finCrk1:      mov r5, -(sp)                 ; gets here when the first IMG is ready
+                                 423     
+003076   005005                  424                   clr r5
+003100   116705 010325           425                   movb IMG1Cols, r5
+003104   010446                  426                   mov r4, -(sp)
+003106   005004                  427                   clr r4
+003110   116704 010316           428                   movb IMG1Rows, r4
+003114   070504                  429                   mul r4, r5                  ; calculates dimentions of IMG and stores it in r5
+003116   012604                  430                   mov (sp)+, r4
+                                 431     
+003120   010546                  432                   mov r5, -(sp)             ; r5=dimenstions
+003122   012746 016530           433                   mov #IMG1, -(sp)
+003126   004767 005644           434                   jsr pc, parseImg          ; remove all irelevant data which has been given by user and stores data in IMG1
+003132   022626                  435                   cmp (sp)+, (sp)+
+                                 436     
+003134   010546                  437                   mov r5, -(sp)             ; r5=dimenstions
+003136   012746 016530           438                   mov #IMG1, -(sp)          ; img to convert from asci to octal
+003142   004767 005776           439                   jsr pc, asciToOc          ; converts all data from ascii to octal nums
+003146   022626                  440                   cmp (sp)+, (sp)+
+                                 441     
+003150   012605                  442                   mov (sp)+, r5
+                                 443     
+003152   012746 013322           444                   mov #crkPrmt2, -(sp)        ; crkPrmt2="Please enter encoded image"
+003156   012746 000001           445                   mov #1, -(sp)
+003162   004767 007154           446                   jsr pc, printText
+003166   022626                  447                   cmp (sp)+, (sp)+
+                                 448     
+                                 449                   ;;;;;;;;;;;;;;;;;;;;;;;;;
+003170   012767 014514 010242    450                   mov #TEMPIMG, IMGIT         ; init IMG iterator
+003176   112767 000004 010232    451                   movb #4, Ctrl               ; Ctrl=4 when the second IMG of crack need to be proccess
+003204   012767 000101 174346    452                   mov #101, tks
+003212   000002                  453                   rti
+                                 454                   ;;;;;;;;;;;;;;;;;;;;;;;;;
+                                 455     
+003214   010546                  456     finCrk2:      mov r5, -(sp)             ; gets here when second IMG is ready
+                                 457     
+003216   005005                  458                   clr r5
+003220   116705 010205           459                   movb IMG1Cols, r5
+003224   010446                  460                   mov r4, -(sp)
+003226   005004                  461                   clr r4
+003230   116704 010176           462                   movb IMG1Rows, r4
+003234   070504                  463                   mul r4, r5                ; calculates dimentions of IMG and stores in r5
+003236   012604                  464                   mov (sp)+, r4
+                                 465     
+003240   010546                  466                   mov r5, -(sp)             ; r5=dimenstions
+003242   012746 020530           467                   mov #IMG2, -(sp)
+003246   004767 005524           468                   jsr pc, parseImg          ; remove all irelevant data which has been given by user and stores data in IMG1
+003252   022626                  469                   cmp (sp)+, (sp)+
+                                 470     
+003254   010546                  471                   mov r5, -(sp)             ; r5=dimenstions
+003256   012746 020530           472                   mov #IMG2, -(sp)          ; img to convert from asci to octal
+003262   004767 005656           473                   jsr pc, asciToOc          ; converts all data from ascii to octal nums
+003266   022626                  474                   cmp (sp)+, (sp)+
+                                 475     
+003270   010526                  476                   mov r5, (sp)+
+                                 477     
+                                 478       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; interuptions enable ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+003272   012746 013021           479             mov #cmdPrmt, -(sp)           ; prints "$ "
+003276   012746 013406           480             mov #newLinePrmt, -(sp)
+003302   012746 000002           481             mov #2, -(sp)
+003306   004767 007030           482             jsr pc, printText
+003312   022626                  483             cmp (sp)+, (sp)+
+003314   005726                  484             tst (sp)+
+                                 485     
+003316   112767 000000 010112    486             movb #0, Ctrl                 ; init Ctrl to start getting new commands while finding Key
+003324   012767 013450 010110    487             mov #TEMPCMD, CMDIT           ; init CMD iterator to start
+003332   012767 000101 174220    488             mov #101, tks                 ; turns keyboard interuptions while finding a key
+                                 489       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                 490     
+003340   010246                  491                   mov r2, -(sp)          ; environment safty
+003342   010446                  492                   mov r4, -(sp)
+003344   010546                  493                   mov r5, -(sp)
+003346   005002                  494                   clr r2
+003350   005004                  495                   clr r4
+003352   005005                  496                   clr r5
+003354   116702 010052           497                   movb IMG1Rows, r2
+003360   116704 010045           498                   movb IMG1Cols, r4
+003364   116705 010045           499                   movb KeyMaxSize, r5
+                                 500     
+003370   072227 000010           501                   ash #8, r2
+003374   010246                  502                   mov r2, -(sp)           ; r2=nRows
+003376   110416                  503                   movb r4, (sp)           ; r4=nCols
+003400   010546                  504                   mov r5, -(sp)           ; r5=key's max size
+003402   010646                  505                   mov sp, -(sp)
+003404   062716 000003           506                   add #3, (sp)
+003410   010646                  507                   mov sp, -(sp)
+003412   062716 000004           508                   add #4, (sp)
+003416   004767 003070           509                   jsr pc, cmdCrack          ; pushed nRows and nCols by address in stack
+003422   022626                  510                   cmp (sp)+, (sp)+
+003424   022626                  511                   cmp (sp)+, (sp)+
+                                 512     
+003426   012605                  513                   mov (sp)+, r5           ; restore registers from outside
+003430   012604                  514                   mov (sp)+, r4
+003432   012602                  515                   mov (sp)+, r2
+                                 516     
+003434   026727 013054 000002    517                   cmp clkctrl, #2
+003442   001402                  518                   beq clk3
+003444   004767 001052           519                   jsr pc, clockOFF
+003450   012767 000000 013036    520     clk3:         mov #0, clkctrl
+                                 521     
+003456   012746 013400           522                   mov #crkStr, -(sp)
+003462   004767 001234           523                   jsr pc, printClock
+003466   005726                  524                   tst (sp)+
+                                 525     
+003470   126727 007742 000000    526                   cmpb Ctrl, #0           ; checks the correct state of the program if it is getting an image or a command
+003476   001045                  527                   bne cont1
+003500   032767 000200 174056    528     dollar:       bit #200, tps           ; if a command than print "$ " and all the privous given chars
+003506   001774                  529                   beq dollar
+003510   012767 000044 174050    530                   mov #'$, tpb
+003516   032767 000200 174040    531     space:        bit #200, tps
+003524   001774                  532                   beq space
+003526   012767 000040 174032    533                   mov #40, tpb
+003534   010146                  534                   mov r1, -(sp)
+003536   010246                  535                   mov r2, -(sp)
+003540   016701 007676           536                   mov CMDIT, r1
+003544   012702 013450           537                   mov #TEMPCMD, r2
+003550   020127 013450           538     cmdCont1:     cmp r1, #TEMPCMD
+003554   001410                  539                   beq cmdCont2
+003556   032767 000200 174000    540     prin:         bit #200, tps
+003564   001774                  541                   beq prin
+003566   112267 173774           542                   movb (r2)+, tpb
+003572   005301                  543                   dec r1
+003574   000765                  544                   br cmdCont1
+003576   012602                  545     cmdCont2:     mov (sp)+, r2
+003600   012601                  546                   mov (sp)+, r1
+003602   012767 000101 173750    547                   mov #101, tks
+003610   000002                  548                   rti
+                                 549     
+003612   010146                  550     cont1:        mov r1, -(sp)           ; if an image than prints all the privious given chars
+003614   010246                  551                   mov r2, -(sp)
+003616   016701 007616           552                   mov IMGIT, r1
+003622   012702 014514           553                   mov #TEMPIMG, r2
+003626   020127 014514           554     cont2:        cmp r1, #TEMPIMG
+003632   001410                  555                   beq cont3
+003634   032767 000200 173722    556     print:        bit #200, tps
+003642   001774                  557                   beq print
+003644   112267 173716           558                   movb (r2)+, tpb
+003650   005301                  559                   dec r1
+003652   000765                  560                   br cont2
+003654   012602                  561     cont3:        mov (sp)+, r2
+003656   012601                  562                   mov (sp)+, r1
+003660   012767 000101 173672    563                   mov #101, tks
+003666   000002                  564                   rti
+                                 565     
+003670   012746 013570           566     chkPrint:     mov #CMDLINE, -(sp)
+003674   004267 006542           567                   jsr r2, cmpStr            ; checks if the given command is "print"
+003700      160    162    151    568                   .ascii <print&>
+            156    164    046            
+003706                           569                   .even
+003706   012602                  570                   mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+003710   020227 000001           571                   cmp r2, #1
+003714   001453                  572                   beq chkQuit
+                                 573     
+                                 574             ;;;;;; PRINT CALL
+                                 575     
+003716   126727 007511 000000    576                   cmpb IMG3Cols, #0
+003724   001445                  577                   beq fin123
+003726   126727 007502 000000    578                   cmpb IMG3Rows, #0
+003734   001441                  579                   beq fin123
+                                 580     
+003736   026727 012552 000001    581                   cmp clkctrl, #1
+003744   001003                  582                   bne cl1
+003746   012767 000002 012540    583                   mov #2, clkctrl
+003754   004767 000532           584     cl1:          jsr pc, clockON
+                                 585     
+003760   005046                  586                   clr -(sp)
+003762   116716 007445           587                   movb IMG3Cols, (sp)
+003766   005046                  588                   clr -(sp)
+003770   116716 007440           589                   movb IMG3Rows, (sp)
+003774   004767 000532           590                   jsr pc, cmdPrint          ; prints IMG3 label - last encode or decode call
+004000   022626                  591                   cmp (sp)+, (sp)+
+                                 592     
+004002   026727 012506 000002    593                   cmp clkctrl, #2
+004010   001403                  594                   beq cl2
+004012   004767 000504           595                   jsr pc, clockOFF
+004016   000403                  596                   br clkcont5
+004020   012767 000001 012466    597     cl2:         mov #1, clkctrl
+                                 598     
+004026   012746 013570           599     clkcont5:     mov #CMDLINE, -(sp)
+004032   004767 000664           600                   jsr pc, printClock
+004036   005726                  601                   tst (sp)+
+                                 602     
+004040   000167 175270           603     fin123:       jmp clrFinishCmd
+                                 604     
+004044   012746 013570           605     chkQuit:      mov #CMDLINE, -(sp)
+004050   004267 006366           606                   jsr r2, cmpStr            ; checks if the given command is "quit"
+004054      161    165    151    607                   .ascii <quit&>
+            164    046                   
+004061      000                  608                   .even
+004062   012602                  609                   mov (sp)+, r2         ; (sp)=OUTPUT 1/0
+004064   020227 000001           610                   cmp r2, #1
+004070   001412                  611                   beq chkFail               ; if not, than it is an UNknown command
+                                 612     
+                                 613             ;;;;;; QUIT CALL
+                                 614     
+004072   012746 013024           615                   mov #quitPrmt, -(sp)        ;quitPrmt="Goodbye!"
+004076   012746 000001           616                   mov #1, -(sp)
+004102   004767 006234           617                   jsr pc, printText
+004106   012706 001000           618                   mov #main, sp
+004112   000167 006666           619                   jmp finish
+                                 620     
+                                 621             ;;;;;; UNKNOWN COMMAND
+                                 622     
+004116   012746 013060           623     chkFail:      mov #dotPrmt, -(sp)           ; gets here when an Unknow command has been given
+004122   012746 013570           624                   mov #CMDLINE, -(sp)
+004126   012746 013037           625                   mov #unknownPrmt, -(sp)
+004132   012746 000003           626                   mov #3, -(sp)
+004136   004767 006200           627                   jsr pc, printText
+004142   022626                  628                   cmp (sp)+, (sp)+
+004144   022626                  629                   cmp (sp)+, (sp)+
+004146   000167 175162           630                   jmp clrFinishCmd
+                                 631     
+                                 632     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 633     
+004152                           634     crkSystem: ; 2(sp)=Hash , 4(sp)=nCols , 6(sp)=nRows , 10(sp)=EncImg , 12(sp)=OrigImg , Key=OUTPUT
+                                 635     ; crkSystem subrutine:
+                                 636     ; returns a matched key by global variable for a given OrigImg and EncImg
+                                 637     ; all parameters are given by sp
+                                 638     
+004152   010146                  639               mov r1, -(sp)         ; saves r1's value
+                                 640     
+004154   005746                  641               tst -(sp)             ; output space
+004156   016646 000016           642               mov 16(sp), -(sp)     ; 16(sp)=OrigImg
+004162   016646 000016           643               mov 16(sp), -(sp)     ; 16(sp)=EncImg
+004166   016646 000016           644               mov 16(sp), -(sp)     ; 16(sp)=nRows
+004172   016646 000016           645               mov 16(sp), -(sp)     ; 16(sp)=nCols
+004176   004767 002650           646               jsr pc, cmpImg
+004202   062706 000010           647               add #10, sp
+                                 648     
+004206   005726                  649               tst (sp)+
+004210   001005                  650               bne sysFind         ; checks if EncImg == OrigImg
+004212   012701 014114           651               mov #Key, r1
+004216   004767 002554           652               jsr pc, nextKey
+004222   000460                  653               br sysFinish
+                                 654     
+004224   012701 014114           655     sysFind:  mov #Key, r1
+004230   004767 002542           656               jsr pc, nextKey
+                                 657     
+004234   016646 000014           658               mov 14(sp), -(sp)     ; 14(sp)=OrigImg
+004240   016646 000012           659               mov 12(sp), -(sp)     ; 12(sp)=nRows
+004244   016646 000012           660               mov 12(sp), -(sp)     ; 12(sp)=nCols
+004250   016646 000012           661               mov 12(sp), -(sp)     ; 12(sp)=Hash
+004254   012746 014114           662               mov #Key, -(sp)
+004260   004767 005212           663               jsr pc, encode        ; encoding for comparison
+004264   062706 000012           664               add #12, sp
+                                 665     
+004270   005746                  666               tst -(sp)             ; output space
+004272   016646 000016           667               mov 16(sp), -(sp)     ; 16(sp)=OrigImg
+004276   016646 000016           668               mov 16(sp), -(sp)     ; 16(sp)=EncImg
+004302   016646 000016           669               mov 16(sp), -(sp)     ; 16(sp)=nRows
+004306   016646 000016           670               mov 16(sp), -(sp)     ; 16(sp)=nCols
+004312   004767 002534           671               jsr pc, cmpImg
+004316   062706 000010           672               add #10, sp
+                                 673     
+004322   005726                  674               tst (sp)+
+004324   001417                  675               beq sysFinish         ; checks if EncImg == OrigImg
+                                 676     
+004326   016646 000014           677               mov 14(sp), -(sp)     ; 14(sp)=OrigImg
+004332   016646 000012           678               mov 12(sp), -(sp)     ; 12(sp)=nRows
+004336   016646 000012           679               mov 12(sp), -(sp)     ; 12(sp)=nCols
+004342   016646 000012           680               mov 12(sp), -(sp)     ; 12(sp)=Hash
+004346   012746 014114           681               mov #Key, -(sp)
+004352   004767 003416           682               jsr pc, decode        ; decoding OrigImg after encryption
+004356   062706 000012           683               add #12, sp
+                                 684     
+004362   000720                  685               br sysFind            ; continues check the next key
+                                 686     
+004364   012601                  687     sysFinish:    mov (sp)+, r1     ; restores r1 value
+004366   000207                  688                   rts pc
+                                 689     
+                                 690     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 691     
+004370   023737 016516 016526    692     clock:  cmp @#cracktime, @#rate
+004376   001005                  693             bne checkreg
+004400   005237 016520           694             inc @#cracksecs
+004404   005037 016516           695             clr @#cracktime
+004410   000411                  696             br ccontinue
+004412                           697     checkreg:
+004412   023737 016522 016526    698             cmp @#regftime, @#rate
+004420   001005                  699             bne ccontinue
+004422   005237 016524           700             inc @#regfsec
+004426   005037 016522           701             clr @#regftime
+004432   000400                  702             br ccontinue
+004434                           703     ccontinue:
+004434   023727 016514 000000    704             cmp @#clkctrl, #0
+004442   001410                  705             beq regfclk
+004444   023727 016514 000001    706             cmp @#clkctrl, #1
+004452   001407                  707             beq crackclk
+004454   023727 016514 000002    708             cmp @#clkctrl, #2
+004462   001406                  709             beq bothclk
+004464                           710     regfclk:
+004464   005237 016522           711             inc @#regftime
+004470   000407                  712             br fclock
+004472                           713     crackclk:
+004472   005237 016516           714             inc @#cracktime
+004476   000404                  715             br fclock
+004500                           716     bothclk:
+004500   005237 016516           717             inc @#cracktime
+004504   005237 016522           718             inc @#regftime
+004510   000002                  719     fclock: rti
+                                 720     
+004512   012767 000100 173026    721     clockON:  mov #100, lcs
+004520   000207                  722               rts pc
+                                 723     
+004522   012767 000000 173016    724     clockOFF: mov #0, lcs
+004530   000207                  725               rts pc
+                                 726     
+                                 727     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 728     
+                                 729     ; receives the following stack:
+                                 730     ; return address
+                                 731     ; amount of rows
+                                 732     ; amount of columns
+                                 733     
+004532                           734     cmdPrint:
+                                 735     
+004532   016646 000002           736               mov 2(sp), -(sp)
+004536   016646 000006           737               mov 6(sp), -(sp)
+004542   010146                  738               mov r1, -(sp)         ;IMG iterator
+004544   012701 022530           739               mov #IMG3, r1
+004550   032737 000001 177564    740               bit #1, @#tps
+004556                           741     PstepCol:
+004556   012746 000001           742               mov #1, -(sp)
+004562   010146                  743               mov r1, -(sp)
+004564   004767 004354           744               jsr pc, asciToOc        ;converts the byte into ascii
+004570   022626                  745               cmp (sp)+, (sp)+
+004572   105737 177564           746     Pbusy_wait: tstb @#tps
+004576   100375                  747               bpl Pbusy_wait
+004600   121127 000010           748               cmpb (r1), #10
+004604   002004                  749               bge Pprintstar
+004606   112737 000040 177566    750               movb #' , @#tpb        ;prints the byte in the IMG
+004614   000403                  751               br Pcont
+004616                           752     Pprintstar:
+004616   112737 000052 177566    753               movb #'*, @#tpb
+                                 754     
+004624   012746 000001           755     Pcont:    mov #1, -(sp)
+004630   010146                  756               mov r1, -(sp)
+004632   004767 004554           757               jsr pc, ocToAsci        ;converts it back to octal
+004636   022626                  758               cmp (sp)+, (sp)+
+004640   005201                  759               inc r1
+004642   005366 000002           760               dec 2(sp)
+004646   001343                  761               bne PstepCol
+004650   105737 177564           762     Pnewline:tstb @#tps              ;prints newline
+004654   100375                  763               bpl Pnewline
+004656   112737 000012 177566    764               movb #'\n, @#tpb
+004664                           765     Pnewcrline:
+004664   105737 177564           766               tstb @#tps
+004670   100375                  767               bpl Pnewcrline
+004672   112737 000015 177566    768               movb #'\r, @#tpb
+                                 769     
+004700   016666 000012 000002    770               mov 12(sp), 2(sp)
+004706   005366 000004           771               dec 4(sp)               ;continues to the next line
+004712   001321                  772               bne PstepCol
+                                 773     
+004714   012601                  774               mov (sp)+, r1
+004716   022626                  775               cmp (sp)+, (sp)+
+004720   000207                  776               rts pc
+                                 777     
+                                 778     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 779     
+004722                           780     printClock:
+004722   016646 000002           781               mov 2(sp), -(sp)          ;prints command name
+004726   012746 000001           782               mov #1, -(sp)
+004732   004767 005404           783               jsr pc, printText
+004736   022626                  784               cmp (sp)+, (sp)+
+                                 785     
+004740   012746 005356           786               mov #str2, -(sp)          ;prints "completed in"
+004744   012746 000001           787               mov #1, -(sp)
+004750   004767 005366           788               jsr pc, printText
+004754   022626                  789               cmp (sp)+, (sp)+
+                                 790     
+004756   010246                  791               mov r2, -(sp)
+004760   016646 000004           792               mov 4(sp), -(sp)
+004764   004267 005452           793               jsr r2, cmpStr
+004770      143    162    141    794               .ascii <crack&>
+            143    153    046            
+004776                           795               .even
+004776   021627 000000           796               cmp (sp), #0
+005002   001011                  797               bne pushregf
+005004   005726                  798               tst (sp)+
+005006   012602                  799               mov (sp)+, r2
+005010   013746 016520           800               mov @#cracksecs, -(sp)        ;prints regfsec in format "...x.x"
+005014   023727 016520 000000    801               cmp @#cracksecs, #0
+005022   001415                  802               beq printz
+005024   000410                  803               br tmprint
+005026                           804     pushregf:
+005026   005726                  805               tst (sp)+
+005030   012602                  806               mov (sp)+, r2
+005032   013746 016524           807               mov @#regfsec, -(sp)        ;prints regfsec in format "...x.x"
+005036   023727 016524 000000    808               cmp @#regfsec, #0
+005044   001404                  809               beq printz
+005046   004767 000340           810     tmprint:  jsr pc, numPrintAsci
+005052   005726                  811               tst (sp)+
+005054   000407                  812               br dotprint
+005056   005726                  813     printz:   tst (sp)+
+005060   012737 000060 177566    814               mov #60, @#tpb
+005066   105737 177564           815     bb_w:     tstb @#tps
+005072   100375                  816               bpl bb_w
+005074   012737 000056 177566    817     dotprint: mov #'., @#tpb
+005102   105737 177564           818     ib_w:     tstb @#tps
+005106   100375                  819               bpl ib_w
+                                 820     ;~~~~~~~ prints time left ~~~~~~~~~~~~~
+005110   012746 023420           821               mov #23420, -(sp)
+005114   010446                  822               mov r4, -(sp)
+                                 823     
+005116   010246                  824               mov r2, -(sp)
+005120   016646 000010           825               mov 10(sp), -(sp)
+005124   004267 005312           826               jsr r2, cmpStr
+005130      143    162    141    827               .ascii <crack&>
+            143    153    046            
+005136                           828               .even
+005136   021627 000000           829               cmp (sp), #0
+005142   001005                  830               bne movereg
+005144   005726                  831               tst (sp)+
+005146   012602                  832               mov (sp)+, r2
+005150   013702 016516           833               mov @#cracktime, r2
+005154   000404                  834               br divmils
+005156   005726                  835     movereg:  tst (sp)+
+005160   012602                  836               mov (sp)+, r2
+005162   013702 016522           837               mov @#regftime, r2
+005166   010203                  838     divmils:  mov r2, r3
+005170   005002                  839               clr r2
+005172   071266 000002           840               div 2(sp), r2
+005176   020227 000000           841               cmp r2, #0
+005202   001012                  842               bne milprint
+005204   010304                  843               mov r3, r4
+005206   005002                  844               clr r2
+005210   016603 000002           845               mov 2(sp), r3
+005214   071227 000012           846               div #12, r2
+005220   010266 000002           847               mov r2, 2(sp)
+005224   010402                  848               mov r4, r2
+005226   000757                  849               br divmils
+005230   062702 000060           850     milprint: add #60, r2
+005234   010237 177566           851               mov r2, @#tpb
+005240   105737 177564           852     qb_w:     tstb @#tps
+005244   100375                  853               bpl qb_w
+005246   012604                  854               mov (sp)+, r4
+005250   005726                  855               tst (sp)+
+                                 856     
+                                 857     
+005252   012746 005404           858               mov #str3, -(sp)          ;prints "sec"
+005256   012746 000001           859               mov #1, -(sp)
+005262   004767 005054           860               jsr pc, printText
+005266   022626                  861               cmp (sp)+, (sp)+
+                                 862     
+005270   010246                  863               mov r2, -(sp)
+005272   016646 000004           864               mov 4(sp), -(sp)
+005276   004267 005140           865               jsr r2, cmpStr
+005302      143    162    141    866               .ascii <crack&>
+            143    153    046            
+005310                           867               .even
+005310   021627 000000           868               cmp (sp), #0
+005314   001407                  869               beq nullcrack
+005316   012737 000000 016522    870               mov #0, @#regftime
+005324   012737 000000 016524    871               mov #0, @#regfsec
+005332   000406                  872               br endTime
+005334                           873     nullcrack:
+005334   012737 000000 016520    874               mov #0, @#cracksecs
+005342   012737 000000 016516    875               mov #0, @#cracktime
+005350   005726                  876     endTime:  tst (sp)+
+005352   012602                  877               mov (sp)+, r2
+005354   000207                  878               rts pc
+005356                           879     .even
+005356      040    143    157    880     str2: .ascii< completed in &>
+            155    160    154            
+            145    164    145            
+            144    040    151            
+            156    040    046            
+005375      000                  881     .even
+005376      143    162    064    882     str1: .ascii<cr4ck&>
+            143    153    046            
+005404      163    145    143    883     str3: .ascii<sec\r\n&>
+            015    012    046            
+005412                           884     .even
+                                 885     
+                                 886     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 887     
+                                 888     ; receives:
+                                 889     ; return address
+                                 890     ; empty space
+                                 891     ; the number to print
+005412   012746 023420           892     numPrintAsci:  mov #23420, -(sp)   ; devider for digits seperation
+005416   016646 000004           893                 mov 4(sp), -(sp)    ; push the number to convert again
+005422   010246                  894                 mov r2, -(sp)       ; temp
+005424   010346                  895                 mov r3, -(sp)
+005426   016646 000006           896                 mov 6(sp), -(sp)
+005432   005002                  897     devide:     clr r2
+005434   026627 000006 000000    898                 cmp 6(sp), #0
+005442   001477                  899                 beq nfinish
+005444   016603 000006           900                 mov 6(sp), r3        ;move number to r2
+005450   071266 000010           901                 div 10(sp), r2
+005454   005702                  902                 tst r2
+005456   001450                  903                 beq keepdevide
+005460   062702 000060           904     printnum:   add #60, r2
+005464   110237 177566           905                 movb r2, @#tpb
+005470   105737 177564           906     nb_w:       tstb @#tps
+005474   100375                  907                 bpl nb_w
+005476   020227 000000           908                 cmp r2, #0
+005502   001433                  909                 beq iszero
+005504   020327 000000           910                 cmp r3, #0
+005510   001030                  911                 bne iszero
+005512   026627 000006 000000    912                 cmp 6(sp), #0
+005520   001424                  913                 beq iszero
+005522   012766 000012 000010    914     print_zero: mov #12, 10(sp)
+005530   016603 000006           915     dagain:     mov 6(sp), r3
+005534   005002                  916                 clr r2
+005536   071266 000010           917                 div 10(sp), r2
+005542   020327 000000           918                 cmp r3, #0
+005546   001035                  919                 bne nfinish
+005550   012737 000060 177566    920                 mov #60, @#tpb
+005556   105737 177564           921     zb_w:       tstb @#tps
+005562   100375                  922                 bpl zb_w
+005564   010266 000006           923                 mov r2, 6(sp)
+005570   000757                  924                 br dagain
+                                 925     
+005572                           926     iszero:
+005572   010366 000006           927                 mov r3, 6(sp)
+005576   000715                  928                 br devide
+005600   016603 000010           929     keepdevide: mov 10(sp), r3
+005604   005002                  930                 clr r2
+005606   071227 000012           931                 div #12, r2
+005612   010266 000010           932                 mov r2, 10(sp)
+005616   026627 000010 000001    933                 cmp 10(sp), #1
+005624   001401                  934                 beq nclear
+005626   000701                  935                 br devide
+005630   016602 000006           936     nclear:     mov 6(sp), r2
+005634   005066 000006           937                 clr 6(sp)
+005640   000707                  938                 br printnum
+                                 939     
+                                 940     
+005642   005726                  941     nfinish:    tst (sp)+
+                                 942                 ;mov (sp)+, r4
+005644   012603                  943                 mov (sp)+, r3
+005646   012602                  944                 mov (sp)+, r2
+005650   022626                  945                 cmp (sp)+, (sp)+
+005652   000207                  946                 rts pc
+                                 947     
+                                 948     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 949     
+005654                           950     cmdEnc: ; 2(sp) - nCols, 4(sp) - nRows
+                                 951     ; gets by stack nCols and nRows address and turns
+                                 952     ; encryptes an image which stored in IMG3 label and prints the result
+                                 953     
+005654   010546                  954           mov r5, -(sp)
+                                 955     
+005656   005005                  956           clr r5
+005660   117605 000004           957           movb @4(sp), r5         ; 4(sp) = nCols
+005664   010446                  958           mov r4, -(sp)
+005666   005004                  959           clr r4
+005670   117604 000010           960           movb @10(sp), r4    ; 10(sp) = nRows
+005674   070504                  961           mul r4, r5
+005676   012604                  962           mov (sp)+, r4
+                                 963     
+005700   010546                  964           mov r5, -(sp)             ; r5=dimenstions
+005702   012746 022530           965           mov #IMG3, -(sp)
+005706   004767 003064           966           jsr pc, parseImg          ; remove all irelevant data and transfer it from TEMPIMG to IMG3
+005712   022626                  967           cmp (sp)+, (sp)+
+                                 968     
+005714   010546                  969           mov r5, -(sp)             ; r5=dimenstions
+005716   012746 022530           970           mov #IMG3, -(sp)          ; img to convert from asci to octal
+005722   004767 003216           971           jsr pc, asciToOc          ; converts IMG3 from ascii to octal nums
+005726   022626                  972           cmp (sp)+, (sp)+
+                                 973     
+005730   012746 022530           974           mov #IMG3, -(sp)
+005734   016646 000010           975           mov 10(sp), -(sp)            ; 10(sp)=nRows address
+005740   016646 000010           976           mov 10(sp), -(sp)            ; 10(sp)=nCols address
+005744   012746 013411           977           mov #Hash, -(sp)
+005750   012746 013710           978           mov #KeyUse, -(sp)
+005754   004767 003516           979           jsr pc, encode                ; encodes IMG3 and stores the result ing IMG3
+005760   062706 000012           980           add #12, sp
+                                 981     
+005764   012746 013123           982           mov #encPrmt2, -(sp)          ;encPrmt2="The encoded image is:"
+005770   012746 000001           983           mov #1, -(sp)
+005774   004767 004342           984           jsr pc, printText
+006000   022626                  985           cmp (sp)+, (sp)+
+                                 986     
+006002   012746 022530           987           mov #IMG3, -(sp)
+006006   117646 000010           988           movb @10(sp), -(sp)            ; 10(sp) = nRows
+006012   005046                  989           clr -(sp)
+006014   117616 000012           990           movb @12(sp), (sp)            ; 12(sp) = nCols
+006020   004767 003216           991           jsr pc, printImg              ; prints IMG3
+006024   022626                  992           cmp (sp)+, (sp)+
+006026   005726                  993           tst (sp)+
+                                 994     
+006030   012605                  995     mov (sp)+, r5
+006032   000207                  996     rts pc
+                                 997     
+                                 998     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                 999     
+006034                          1000     imgInput: ; using IMGIT for chars iterator on TEMPIMG
+                                1001     ; this is the sub input program which called by branch from cmdInput
+                                1002     ; when Ctrl is 1,2,3,4 which represents where to imgInput has been called
+                                1003     ; this subrutine proccessed an image char by char and does "rti" afterwards
+                                1004     ; all chars stores in TEMPIMG label
+                                1005     
+006034   010146                 1006           mov r1, -(sp)
+006036   010246                 1007           mov r2, -(sp)
+006040   010546                 1008           mov r5, -(sp)
+                                1009     
+006042   005005                 1010           clr r5
+006044   117705 005376          1011           movb @COLSADR, r5
+006050   010446                 1012           mov r4, -(sp)
+006052   005004                 1013           clr r4
+006054   117704 005364          1014           movb @ROWSADR, r4
+006060   070504                 1015           mul r4, r5              ; calculates image dimenstions and stores it in r5
+006062   012604                 1016           mov (sp)+, r4
+                                1017     
+006064   005001                 1018           clr r1
+006066   116701 171470          1019           movb tkb, r1
+                                1020     
+006072   020127 000010          1021                   cmp r1, #'\b
+006076   001017                 1022                   bne imgInpEnter
+006100   026727 005334 014514   1023                   cmp IMGIT, #TEMPIMG      ; IMGIT=dymanic Img's addres
+006106   001535                 1024                   beq imgInpFinish
+006110   016702 005324          1025                   mov IMGIT, r2          ; IMGIT=dymanic Img's addres
+006114   124227 000015          1026                   cmpb -(r2), #'\r
+006120   001530                 1027                   beq imgInpFinish
+006122   005367 005312          1028                   dec IMGIT
+006126   112777 000000 005304   1029                   movb #0, @IMGIT       ; IMGIT=dymanic Img's Address
+006134   000510                 1030                   br imgInpPrint
+                                1031     
+006136   020127 000015          1032     imgInpEnter:  cmp r1, #'\r        ; is Enter?
+006142   001057                 1033                   bne imgInpUpdate
+006144   005746                 1034                   tst -(sp)               ; OUTPUT
+006146   016746 005266          1035                   mov IMGIT, -(sp)       ; r3=dynamic Img address
+006152   012746 014514          1036                   mov #TEMPIMG, -(sp)
+006156   004767 000236          1037                   jsr pc, imgInpCount       ; Counts if num of relevant chars is bigger than image dimentions
+006162   022626                 1038                   cmp (sp)+, (sp)+
+006164   012602                 1039                   mov (sp)+, r2
+006166   020205                 1040                   cmp r2, r5        ; r5=dimensions
+006170   103427                 1041                   blo imgPrintLF            ; if not, then continue stores char in TEMPIMG
+                                1042                   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+006172   012605                 1043                   mov (sp)+, r5               ; gets here when finished gets chars for the image
+006174   012602                 1044                   mov (sp)+, r2
+006176   012601                 1045                   mov (sp)+, r1
+006200   122767 000001 005230   1046                   cmpb #1, Ctrl
+006206   001002                 1047                   bne pass4
+006210   000167 173430          1048                   jmp finEnc          ; if was called from encode then finish encode function
+006214   122767 000002 005214   1049     pass4:        cmpb #2, Ctrl
+006222   001002                 1050                   bne pass5
+006224   000167 173754          1051                   jmp finDec          ; is was called from decode then finish decode function
+006230   122767 000003 005200   1052     pass5:        cmpb #3, Ctrl
+006236   001002                 1053                   bne pass6
+006240   000167 174630          1054                   jmp finCrk1           ; if was called from the first section of crack function, then run the second part
+006244   000167 174744          1055     pass6:        jmp finCrk2       ; Ctrl=4, if was called from the second section of crack function, then run the last part of it
+                                1056                   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+006250   032767 000200 171306   1057     imgPrintLF:   bit #200, tps       ; if the image isnt ready then prints new line and continue
+006256   001774                 1058                   beq imgPrintLF
+006260   012767 000012 171300   1059                   mov #'\n, tpb
+006266   112777 000012 005144   1060                   movb #'\n, @IMGIT
+006274   005267 005140          1061                   inc IMGIT
+006300   000400                 1062                   br imgInpUpdate
+                                1063     
+006302   110177 005132          1064     imgInpUpdate: movb r1, @IMGIT     ; IMGIT=Img's address
+006306   005267 005126          1065                   inc IMGIT           ; stores the given char in TEMPCMD current pointer and increase it the point the next byte
+006312   000421                 1066                   br imgInpPrint
+                                1067     
+006314   012701 000040          1068     imgIpBS1:     mov #40, r1         ; 40=" "
+006320   032767 000200 171236   1069                   bit #200, tps
+006326   001772                 1070                   beq imgIpBS1
+006330   010167 171232          1071                   mov r1, tpb
+006334   012701 000010          1072     imgIpBS2:     mov #'\b, r1        ; if Backspace has been given then print \b then " " then \b again
+006340   032767 000200 171216   1073                   bit #200, tps
+006346   001772                 1074                   beq imgIpBS2
+006350   010167 171212          1075                   mov r1, tpb
+006354   000412                 1076                   br imgInpFinish
+006356   032767 000200 171200   1077     imgInpPrint:  bit #200, tps
+006364   001774                 1078                   beq imgInpPrint
+006366   010167 171174          1079                   mov r1, tpb
+006372   020127 000010          1080                   cmp r1, #'\b
+006376   001001                 1081                   bne imgInpFinish
+006400   000745                 1082                   br imgIpBS1
+                                1083     
+006402   012767 000101 171150   1084     imgInpFinish: mov #101, tks       ; gets here when need to continue gets chars for the image
+006410   012605                 1085     imgIpEnd:     mov (sp)+, r5       ; gets here when an image is ready
+006412   012602                 1086                   mov (sp)+, r2
+006414   012601                 1087                   mov (sp)+, r1
+006416   000002                 1088                   rti
+                                1089     
+006420                          1090     imgInpCount: ; 2(sp) - start addres, 4(sp) - end address, 6(sp) - OUTPUT
+                                1091     ; this subrutine used by imgInput to count how much relevant chars have been given until the last Enter
+                                1092     ; the OUTPUT is stored in stack
+                                1093     
+006420   010046                 1094           mov r0, -(sp)
+006422   010146                 1095           mov r1, -(sp)
+                                1096     
+006424   016600 000006          1097           mov 6(sp), r0             ; 6(sp) - start address
+006430   005001                 1098           clr r1                    ; r1 counts relevant chars in the image
+                                1099     
+006432                          1100     countCont:
+006432   121027 000141          1101     countChar:  cmpb (r0), #141     ; checks if the current char is between "a" to "f"
+006436   103404                 1102                 blo countNum
+006440   121027 000146          1103                 cmpb (r0), #146
+006444   101001                 1104                 bhi countNum
+006446   000407                 1105                 br countTrue
+                                1106     
+006450   121027 000060          1107     countNum:   cmpb (r0), #60        ; checks if the current char is between "0" to "9"
+006454   103405                 1108                 blo countFalse
+006456   121027 000071          1109                 cmpb (r0), #71
+006462   101002                 1110                 bhi countFalse
+006464   000400                 1111                 br countTrue
+                                1112     
+006466   005201                 1113     countTrue:  inc r1                ; gets here when a valid char is found
+006470   005200                 1114     countFalse: inc r0                ; gets here when a irelevant char is found
+006472   026600 000010          1115                 cmp 10(sp), r0      ; 10(sp) - end address
+006476   101355                 1116                 bhi countCont         ; if finished to analize all chars from start, then finish subrutine
+                                1117     
+006500   010166 000012          1118     countFinish:  mov r1, 12(sp)    ; 12(sp) - OUTPUT
+006504   012601                 1119                   mov (sp)+, r1
+006506   012600                 1120                   mov (sp)+, r0
+006510   000207                 1121                   rts pc
+                                1122     
+                                1123     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1124     
+006512                          1125     cmdCrack: ; 2(sp) - nCols , 4(sp) - nRows, 6(sp) - key's max size
+                                1126     
+006512   012746 000001          1127           mov #1, -(sp)
+006516   004767 002132          1128           jsr pc, setPrio        ; change priority level from 4 to 1 for enabling keboard to interupt
+006522   005726                 1129           tst (sp)+
+                                1130     
+006524   010546                 1131           mov r5, -(sp)
+                                1132     
+006526   005005                 1133           clr r5
+006530   117605 000004          1134           movb @4(sp), r5         ; 4(sp) = nCols
+006534   010446                 1135           mov r4, -(sp)
+006536   005004                 1136           clr r4
+006540   117604 000010          1137           movb @10(sp), r4    ; 10(sp) = nRows
+006544   070504                 1138           mul r4, r5
+006546   012604                 1139           mov (sp)+, r4
+                                1140     
+006550   016646 000010          1141           mov 10(sp), -(sp)         ; 10(sp)=key's max size
+006554   004767 000404          1142           jsr pc, crkGenKey         ; gets max key size and generate a matched linked list for crack proccess
+006560   005726                 1143           tst (sp)+
+                                1144     
+006562   012746 016530          1145           mov #IMG1, -(sp)
+006566   012746 020530          1146           mov #IMG2, -(sp)
+006572   016646 000012          1147           mov 12(sp), -(sp)          ; 12(sp)=nRows
+006576   016646 000012          1148           mov 12(sp), -(sp)          ; 12(sp)=nCols
+006602   012746 013411          1149           mov #Hash, -(sp)
+006606   004767 175340          1150           jsr pc, crkSystem           ; call crack function to find a matched key for encode IMG1 to IMG3
+006612   062706 000012          1151           add #12, sp
+                                1152     
+006616   005746                 1153           tst -(sp)
+006620   004767 000064          1154           jsr pc, keyToStr            ; converts key linked list to key sequence and stores it in KeyStr label
+006624   012605                 1155           mov (sp)+, r5          ; r5=key str length
+                                1156     
+006626   010546                 1157           mov r5, -(sp)               ; r5=key str length
+006630   012746 014314          1158           mov #KeyStr, -(sp)          ; KeyStr to convert from octal to ascii
+006634   004767 002552          1159           jsr pc, ocToAsci
+006640   022626                 1160           cmp (sp)+, (sp)+
+                                1161     
+006642   012746 000004          1162           mov #4, -(sp)
+006646   004767 002002          1163           jsr pc, setPrio        ; restore priority level from 1 to 4 after a key has been found
+006652   005726                 1164           tst (sp)+
+                                1165     
+006654   012746 013406          1166           mov #newLinePrmt, -(sp)
+006660   012746 014314          1167           mov #KeyStr, -(sp)
+006664   012746 013361          1168           mov #crkPrmt3, -(sp)          ; prints the key that has been found in crack proccess
+006670   012746 000003          1169           mov #3, -(sp)
+006674   004767 003442          1170           jsr pc, printText
+006700   022626                 1171           cmp (sp)+, (sp)+
+006702   022626                 1172           cmp (sp)+, (sp)+
+                                1173     
+006704   012605                 1174     mov (sp)+, r5
+006706   000207                 1175     rts pc
+                                1176     
+                                1177     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1178     
+006710                          1179     keyToStr: ; 2(sp) - OUTPUT key str length
+                                1180     ; this subrutine converts key's linked list to string which in Key label and stores it in Keystr
+                                1181     
+006710   010046                 1182           mov r0, -(sp)
+006712   010146                 1183           mov r1, -(sp)
+006714   010246                 1184           mov r2, -(sp)
+                                1185     
+006716   012700 014114          1186                   mov #Key, r0
+006722   012701 014314          1187                   mov #KeyStr, r1
+006726   005002                 1188                   clr r2
+                                1189     
+006730   021027 177777          1190     keyStrPrcs:   cmp (r0), #-1
+006734   001410                 1191                   beq keyStrFinish
+006736   111021                 1192                   movb (r0), (r1)+
+006740   005202                 1193                   inc r2
+006742   005720                 1194                   tst (r0)+
+006744   021027 000000          1195                   cmp (r0), #0
+006750   001402                 1196                   beq keyStrFinish
+006752   011000                 1197                   mov (r0), r0              ; r0 gets the next node by address and continue converting
+006754   000765                 1198                   br keyStrPrcs
+                                1199     
+006756   112711 000046          1200     keyStrFinish: movb #'&, (r1)
+006762   010266 000010          1201                   mov r2, 10(sp)        ; 10(sp)=OUTPUT
+006766   012602                 1202                   mov (sp)+, r2
+006770   012601                 1203                   mov (sp)+, r1
+006772   012600                 1204                   mov (sp)+, r0
+006774   000207                 1205                   rts pc
+                                1206     
+                                1207     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1208     
+006776                          1209     nextKey: ; r1=key
+                                1210     ; nextKey subrutine:
+                                1211     ; changes a given key by r1 to the next key in cyclic Order
+                                1212     ; parameter is given by r1
+006776   010146                 1213                   mov r1, -(sp)           ; saves list's head
+                                1214     
+007000   021127 000017          1215     nkCheckKey:   cmp (r1), #17           ; checks if "17-17-17-..."
+007004   002406                 1216                   blt nkStart             ; if false then start calculate the next key
+007006   062701 000002          1217                   add #2, r1
+007012   005711                 1218                   tst (r1)
+007014   001415                 1219                   beq nkFinish            ; if true then do nothing
+007016   011101                 1220                   mov (r1), r1
+007020   000767                 1221                   br nkCheckKey
+                                1222     
+007022   012601                 1223     nkStart:      mov (sp)+, r1           ; restors list's head
+007024   021127 000017          1224     nkIncNode:    cmp (r1), #17
+007030   002002                 1225                   bge nkNextNode          ; if reach 17 in the current node then move to the next node
+                                1226     
+007032   005211                 1227                   inc (r1)                ; otherwise, increase the current node and exit
+007034   000405                 1228                   br nkFinish
+                                1229     
+007036   005011                 1230     nkNextNode:   clr (r1)
+007040   062701 000002          1231                   add #2, r1
+007044   011101                 1232                   mov (r1), r1
+007046   000766                 1233                   br nkIncNode            ; continue calculate the next key
+                                1234     
+007050   000207                 1235     nkFinish:     rts pc
+                                1236     
+                                1237     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1238     
+007052                          1239     cmpImg: ; 2(sp)=OUTPUT , 4(sp)=nCols , 6(sp)=nRows , 10(sp)=Img2, 12(sp)=Img1
+                                1240     ; cmpImg subrutine:
+                                1241     ; returns "0" by sp if the given 2 Imgs is equal, otherwise returns "1"
+                                1242     ; all parameters are given by sp
+                                1243     
+007052   010146                 1244                   mov r1, -(sp)         ; saves r1,r2,r3,r4 for internal usage
+007054   010246                 1245                   mov r2, -(sp)
+007056   010346                 1246                   mov r3, -(sp)
+007060   010446                 1247                   mov r4, -(sp)
+                                1248     
+007062   016601 000020          1249                   mov 20(sp), r1       ; moves Img1 to r1
+007066   016602 000016          1250                   mov 16(sp), r2        ; moves Img2 to r1
+                                1251     
+007072   121112                 1252     cmpByte:      cmpb (r1), (r2)
+007074   001016                 1253                   bne cmpFalse            ; if [(r1) == (r2)] then return false
+                                1254     
+007076   005003                 1255                   clr r3
+007100   117603 000012          1256                   movb @12(sp), r3        ; moves nRows to r2
+007104   117604 000014          1257                   movb @14(sp), r4        ; moves nCols to r3
+007110   070304                 1258                   mul r4, r3              ; r3=nCols*nRows
+                                1259     
+007112   066603 000020          1260                   add 20(sp), r3          ; 20(sp)=Img1
+007116   005303                 1261                   dec r3
+007120   020301                 1262                   cmp r3, r1
+007122   003407                 1263                   ble cmpTrue             ; if r1 reached the end of Img then return true
+                                1264     
+007124   005201                 1265                   inc r1
+007126   005202                 1266                   inc r2
+007130   000760                 1267                   br cmpByte              ; continues check the next byte
+                                1268     
+007132   012766 000001 000022   1269     cmpFalse:     mov #1, 22(sp)           ; reaches here when a difference between 2 bytes was found
+007140   000404                 1270                   br cmpFinish
+                                1271     
+007142   012766 000000 000022   1272     cmpTrue:      mov #0, 22(sp)           ; reaches here when all bytes are equal each other
+007150   000400                 1273                   br cmpFinish
+                                1274     
+007152   012604                 1275     cmpFinish:    mov (sp)+, r4           ; restores all registers
+007154   012603                 1276                   mov (sp)+, r3
+007156   012602                 1277                   mov (sp)+, r2
+007160   012601                 1278                   mov (sp)+, r1
+007162   000207                 1279                   rts pc
+                                1280     
+                                1281     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1282     
+007164   010146                 1283     crkGenKey:  mov r1, -(sp)
+007166   010246                 1284                 mov r2, -(sp)
+007170   012701 014114          1285                 mov #Key, r1      ;iterator for node's value
+007174   012702 014114          1286                 mov #Key, r2      ;iterator for next node
+007200   062702 000004          1287                 add #4, r2
+                                1288     
+007204   012711 000001          1289     CgenNext:   mov #1, (r1)      ;initializes the value to be -1
+007210   005411                 1290                 neg (r1)
+007212   062701 000002          1291                 add #2, r1
+007216   010211                 1292                 mov r2, (r1)      ;sets next node to be r2's value
+007220   062702 000004          1293                 add #4, r2
+007224   062701 000002          1294                 add #2, r1
+007230   005366 000006          1295                 dec 6(sp)
+007234   001363                 1296                 bne CgenNext
+007236   162701 000002          1297                 sub #2, r1
+007242   012711 000000          1298                 mov #0, (r1)
+007246   012602                 1299                 mov (sp)+, r2
+007250   012601                 1300                 mov (sp)+, r1
+007252   000207                 1301                 rts pc
+                                1302     
+                                1303     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1304     
+007254                          1305     cmdSetKey:; 2(sp) - #strKey
+                                1306     
+007254   010046                 1307           mov r0, -(sp)
+007256   010146                 1308           mov r1, -(sp)
+007260   010246                 1309           mov r2, -(sp)
+                                1310     
+007262   016600 000010          1311           mov 10(sp), r0               ; 10(sp)=#strKey
+007266   012701 177777          1312           mov #-1, r1
+                                1313     
+007272   005201                 1314     keyGetSize: inc r1
+007274   122027 000046          1315           cmpb (r0)+, #'&
+007300   001374                 1316           bne keyGetSize
+                                1317     
+007302   020127 000000          1318           cmp r1, #0
+007306   001450                 1319           beq keyFinish
+                                1320     
+007310   010146                 1321           mov r1, -(sp)                ; r1=length
+007312   016646 000012          1322           mov 12(sp), -(sp)            ; 12(sp)=#strKey
+007316   004767 001622          1323           jsr pc, asciToOc
+007322   022626                 1324           cmp (sp)+, (sp)+
+                                1325     
+007324   012700 013710          1326           mov #KeyUse, r0
+007330   016602 000010          1327           mov 10(sp), r2                ; 10(sp)=#strKey
+                                1328     
+007334                          1329     keyCreateList:
+007334   122712 000046          1330           cmpb #'&, (r2)
+007340   001407                 1331           beq setKeySucces ; change
+007342   112210                 1332           movb (r2)+, (r0)
+007344   062700 000002          1333           add #2, r0
+007350   010010                 1334           mov r0, (r0)
+007352   062720 000002          1335           add #2, (r0)+
+007356   000766                 1336           br keyCreateList
+                                1337     
+007360                          1338     setKeySucces:
+007360   012740 000000          1339           mov #0, -(r0)           ; puts "NIL" at the end of the list
+                                1340     
+007364   010146                 1341           mov r1, -(sp)             ; r1=length
+007366   016646 000012          1342           mov 12(sp), -(sp)         ; 12(sp)=#strKey
+007372   004767 002014          1343           jsr pc, ocToAsci
+007376   022626                 1344           cmp (sp)+, (sp)+
+                                1345     
+007400   012746 013406          1346           mov #newLinePrmt, -(sp)
+007404   016646 000012          1347           mov 12(sp), -(sp)         ; 10(sp)=#strKey
+007410   012746 013246          1348           mov #setKeyPrmp, -(sp)
+007414   012746 000003          1349           mov #3, -(sp)
+007420   004767 002716          1350           jsr pc, printText
+007424   062706 000010          1351           add #10, sp
+                                1352     
+007430                          1353     keyFinish:
+007430   012602                 1354           mov (sp)+, r2
+007432   012601                 1355           mov (sp)+, r1
+007434   012600                 1356           mov (sp)+, r0
+007436   000207                 1357     rts pc
+                                1358     
+                                1359     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1360     
+                                1361     ; this function received the stack in the following order:
+                                1362     ; return address
+                                1363     ; address pointing to hash
+007440   012746 000020          1364     cmdSetHash:   mov #20, -(sp)
+007444   016646 000004          1365                   mov 4(sp), -(sp)
+007450   004767 001470          1366                   jsr pc, asciToOc    ;convert Hash to octal
+007454   022626                 1367                   cmp (sp)+, (sp)+
+                                1368     
+007456   010246                 1369                   mov r2, -(sp)
+007460   010346                 1370                   mov r3, -(sp)
+007462   012746 000020          1371                   mov #20, -(sp)
+007466   012702 013411          1372                   mov #Hash, r2
+007472   016603 000010          1373                   mov 10(sp), r3
+007476   112322                 1374     SHupdateHash: movb (r3)+, (r2)+
+007500   005316                 1375                   dec (sp)
+007502   001375                 1376                   bne SHupdateHash
+007504   005726                 1377                   tst (sp)+
+007506   012602                 1378                   mov (sp)+, r2
+007510   012603                 1379                   mov (sp)+, r3
+                                1380     
+007512   012746 000020          1381                   mov #20, -(sp)
+007516   016646 000004          1382                   mov 4(sp), -(sp)
+007522   004767 001664          1383                   jsr pc, ocToAsci    ;convert Hash to octal
+007526   022626                 1384                   cmp (sp)+, (sp)+
+                                1385     
+007530   012746 007610          1386                   mov #SHend, -(sp)
+007534   016646 000004          1387                   mov 4(sp), -(sp)    ;push the converted Hash
+007540   012746 007562          1388                   mov #SHstr, -(sp)
+007544   012746 000003          1389                   mov #3, -(sp)       ; "Hash function set to" + <Hash> + "\n\r"
+007550   004767 002566          1390                   jsr pc, printText
+007554   022626                 1391                   cmp (sp)+, (sp)+
+007556   022626                 1392                   cmp (sp)+, (sp)+
+007560   000207                 1393                   rts pc
+007562      110    141    163   1394     SHstr:        .ascii        <Hash function set to &>
+            150    040    146            
+            165    156    143            
+            164    151    157            
+            156    040    163            
+            145    164    040            
+            164    157    040            
+            046                          
+007610      012    015    046   1395     SHend:        .ascii        <\n\r&>
+007613      000                 1396     .even
+                                1397     
+                                1398     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1399     
+007614                          1400     cmdDec: ; 2(sp) - nCols, 4(sp) - nRows
+                                1401     
+007614   010546                 1402           mov r5, -(sp)
+                                1403     
+007616   005005                 1404           clr r5
+007620   117605 000004          1405           movb @4(sp), r5         ; 4(sp) = nCols
+007624   010446                 1406           mov r4, -(sp)
+007626   005004                 1407           clr r4
+007630   117604 000010          1408           movb @10(sp), r4    ; 10(sp) = nRows
+007634   070504                 1409           mul r4, r5              ; calculates image dimenstions and stores it in r5
+007636   012604                 1410           mov (sp)+, r4
+                                1411     
+007640   010546                 1412           mov r5, -(sp)             ; r5=dimenstions
+007642   012746 022530          1413           mov #IMG3, -(sp)
+007646   004767 001124          1414           jsr pc, parseImg            ; removes all ireleveant data and stores it in IMG3 label
+007652   022626                 1415           cmp (sp)+, (sp)+
+                                1416     
+007654   010546                 1417           mov r5, -(sp)             ; r5=dimenstions
+007656   012746 022530          1418           mov #IMG3, -(sp)          ; img to convert from asci to octal
+007662   004767 001256          1419           jsr pc, asciToOc
+007666   022626                 1420           cmp (sp)+, (sp)+
+                                1421     
+007670   012746 022530          1422           mov #IMG3, -(sp)
+007674   016646 000010          1423           mov 10(sp), -(sp)            ; 10(sp)=nRows address
+007700   016646 000010          1424           mov 10(sp), -(sp)            ; 10(sp)=nCols address
+007704   012746 013411          1425           mov #Hash, -(sp)
+007710   012746 013710          1426           mov #KeyUse, -(sp)
+007714   004767 000054          1427           jsr pc, decode                ; decode the given image and stores the result in the same label
+007720   062706 000012          1428           add #12, sp
+                                1429     
+007724   012746 013214          1430           mov #decPrmt2, -(sp)          ; decPrmt2="The decoded image is:"
+007730   012746 000001          1431           mov #1, -(sp)
+007734   004767 002402          1432           jsr pc, printText
+007740   022626                 1433           cmp (sp)+, (sp)+
+                                1434     
+007742   012746 022530          1435           mov #IMG3, -(sp)
+007746   117646 000010          1436           movb @10(sp), -(sp)            ; 10(sp) = nRows
+007752   005046                 1437           clr -(sp)
+007754   117616 000012          1438           movb @12(sp), (sp)            ; 12(sp) = nCols
+007760   004767 001256          1439           jsr pc, printImg               ; prints the result in Hexa chars
+007764   022626                 1440           cmp (sp)+, (sp)+
+007766   005726                 1441           tst (sp)+
+                                1442     
+007770   012605                 1443     mov (sp)+, r5
+007772   000207                 1444     rts pc
+                                1445     
+                                1446     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1447     
+                                1448     ;this procedure decodes an image.
+                                1449     ;output - the OrigImg
+007774                          1450     decode:   ; 2(sp) - key, 4(sp) - hash, 6(sp) - nCols, 10(sp) - nRows, 12(sp) - OrigImg
+                                1451               ; reveives the stack in the following way:
+                                1452               ; push OrigImg
+                                1453               ; push nRows
+                                1454               ; push nCols
+                                1455               ; push Hash
+                                1456               ; push Key
+007774   016646 000012          1457               mov 12(sp), -(sp)         ;store the EncImg pointer, so we can update it we the work on the current block
+010000   010546                 1458               mov r5, -(sp)
+010002   005005                 1459               clr r5
+                                1460               ;Decodes the whole block. i.e: encrypts it, unmixes it, then encrypts it again
+010004   016646 000002          1461     DecodeBlock: mov 2(sp), -(sp)
+010010   016646 000010          1462               mov 10(sp), -(sp)
+010014   016646 000016          1463               mov 16(sp), -(sp)
+010020   004767 000224          1464               jsr pc, DecryptBlock
+010024   005726                 1465               tst (sp)+
+010026   005726                 1466               tst (sp)+
+010030   005726                 1467               tst (sp)+
+010032   016646 000002          1468               mov 2(sp), -(sp)
+010036   016646 000012          1469               mov 12(sp), -(sp)
+010042   016646 000016          1470               mov 16(sp), -(sp)
+010046   004767 000360          1471               jsr pc, UnmixBlock
+010052   005726                 1472               tst (sp)+
+010054   005726                 1473               tst (sp)+
+010056   005726                 1474               tst (sp)+
+010060   016646 000002          1475               mov 2(sp), -(sp)
+010064   016646 000010          1476               mov 10(sp), -(sp)
+010070   016646 000016          1477               mov 16(sp), -(sp)
+010074   005005                 1478               clr r5
+010076   004767 000146          1479               jsr pc, DecryptBlock
+010102   005726                 1480               tst (sp)+
+010104   005726                 1481               tst (sp)+
+010106   005726                 1482               tst (sp)+
+                                1483     
+                                1484               ;calculate if we bypassed the user's limit for the image
+                                1485     
+010110   010446                 1486               mov r4, -(sp)       ;use r4 as a temp var for mul
+010112   010346                 1487               mov r3, -(sp)       ;use r3 as a temp var for mul
+010114   005003                 1488               clr r3
+010116   117604 000016          1489               movb @16(sp), r4    ;copy nCols
+010122   016603 000016          1490               mov 16(sp), r3      ;copy nRows
+010126   005203                 1491               inc r3
+010130   111303                 1492               movb (r3), r3
+010132   070304                 1493               mul r4, r3          ;we know the image size is less then 2^16
+010134   010304                 1494               mov r3, r4
+010136   066604 000022          1495               add 22(sp), r4      ; 22(sp) is the place where encode got OriImg address
+010142   160504                 1496               sub r5, r4          ;if we exceeded the blocks - should be negative
+010144   005704                 1497               tst r4
+010146   100402                 1498               bmi DMoveBlockRight
+010150   005704                 1499               tst r4
+010152   001023                 1500               bne CompBlockDown
+                                1501               ; move to the next block from the right. i.e: adds 4 bytes to the columns
+010154                          1502     DMoveBlockRight:
+010154   160305                 1503               sub r3, r5          ;initialize the OrigImg pointer to the first line in the column.
+010156   010566 000006          1504               mov r5, 6(sp)       ;basically we substract the multiplication of nColsxnRows from the current
+                                1505                                   ;place in the image's pointer (stored in 2(sp))
+010162   062766 000004 000006   1506               add #4, 6(sp)       ;move to next block from right
+010170   016604 000006          1507               mov 6(sp), r4
+010174   005003                 1508               clr r3
+010176   117603 000016          1509               movb @16(sp), r3    ;copy nCols value to r3
+010202   160304                 1510               sub r3, r4
+010204   016603 000022          1511               mov 22(sp), r3
+010210   160403                 1512               sub r4, r3
+010212   001411                 1513               beq DEndDecodeRight     ;if the result=0, we exceeded nCols
+                                1514     
+010214   012603                 1515               mov (sp)+, r3
+010216   012604                 1516               mov (sp)+, r4
+010220   000671                 1517               br DecodeBlock
+                                1518               ;moves to the next block from the bottom. i.e: adds 4 rows.
+010222                          1519     CompBlockDown:
+010222   012603                 1520               mov (sp)+, r3
+010224   012604                 1521               mov (sp)+, r4
+010226   010566 000002          1522               mov r5, 2(sp)
+010232   000664                 1523               br DecodeBlock
+010234   000402                 1524               br FinishDecode
+010236                          1525     DEndDecodeRight:
+010236   012603                 1526               mov (sp)+, r3
+010240   012604                 1527               mov (sp)+, r4
+010242                          1528     FinishDecode:
+010242   012605                 1529               mov (sp)+, r5
+010244   005726                 1530               tst (sp)+           ;pull the r5 we pushed earlier to return r1's value from the encription
+010246   000207                 1531               rts pc
+                                1532     
+                                1533               ; the encryption for the block. uses xor encryption with the users key.
+010250                          1534     DecryptBlock:  ; 14(sp) - nCols address, 16(sp) - Key address, 20(sp) - OImg address
+                                1535                    ; Order of passing parameters:
+                                1536                    ; push Image address
+                                1537                    ; push Key address
+                                1538                    ; push nCols address
+010250   010146                 1539               mov r1, -(sp)
+010252   010246                 1540               mov r2, -(sp)
+010254   010446                 1541               mov r4, -(sp)
+010256   010546                 1542               mov r5, -(sp)
+010260   010346                 1543               mov r3, -(sp)
+010262   005004                 1544               clr r4
+010264   016601 000020          1545               mov 20(sp), r1
+010270   016602 000016          1546               mov 16(sp), r2
+010274   017604 000014          1547               mov @14(sp), r4
+010300   042704 177400          1548               bic #177400, r4                 ;gets lower byte of r4, which is nCols
+010304   012705 000004          1549               mov #4, r5                      ;set counters for sob
+010310   012703 000004          1550               mov #4, r3
+                                1551               ;decrypts a line
+010314                          1552     DecryptLine:
+010314   010246                 1553               mov r2,-(sp)                    ;store current node and put it's value in r2
+010316   011202                 1554               mov (r2),r2
+010320   010146                 1555               mov r1,-(sp)                    ;because r1 is byte, we store r1's address and move into it the value for xoring
+010322   005001                 1556               clr r1
+010324   117601 000000          1557               movb @0(sp), r1
+010330   074201                 1558               xor r2,r1
+010332   110176 000000          1559               movb r1, @0(sp)
+010336   012601                 1560               mov (sp)+, r1
+010340   005201                 1561               inc r1
+010342   012602                 1562               mov (sp)+, r2
+010344   062702 000002          1563               add #2, r2                       ;moves to next node in key
+010350   027227 000000 177777   1564               cmp @(r2), #177777
+010356   001402                 1565               beq DGetNewKey                    ;cycles again the key if nil
+010360   005712                 1566               tst(r2)
+010362   001004                 1567               bne DKeyLenIsOk
+                                1568               ;set the first key value if the current one is -1 or nil
+010364                          1569     DGetNewKey:
+010364   016602 000016          1570               mov 16(sp), r2
+010370   077527                 1571               sob r5, DecryptLine
+010372   000402                 1572               br DNextLine
+010374   011202                 1573     DKeyLenIsOk: mov (r2), r2                    ;get address of new key node
+010376   077532                 1574               sob r5, DecryptLine
+                                1575               ;continue to the next line
+010400   162701 000004          1576     DNextLine: sub #4, r1                       ;mov r1 to the beginning of line
+010404   060401                 1577               add r4, r1                      ;moves r4 one line forward
+010406   012705 000004          1578               mov #4, r5
+010412   077340                 1579               sob r3, DecryptLine
+010414   012603                 1580               mov (sp)+, r3
+010416   012605                 1581               mov (sp)+, r5
+010420   010105                 1582               mov r1, r5
+010422   012604                 1583               mov (sp)+, r4
+010424   012602                 1584               mov (sp)+, r2
+010426   012601                 1585               mov (sp)+, r1
+010430   000207                 1586               rts pc
+                                1587               ;un-mixes the block. Using the Img's value in order to get the index in the Hash Function.
+010432                          1588     UnmixBlock: ; 14(sp) - nCols address, 16(sp) - Hash address, 20(sp) - OImg address
+                                1589                ; Order of passing parameters:
+                                1590                ; push Image address
+                                1591                ; push Hash address
+                                1592                ; push nCols address
+010432   010146                 1593               mov r1, -(sp)
+010434   010246                 1594               mov r2, -(sp)
+010436   010446                 1595               mov r4, -(sp)
+010440   010546                 1596               mov r5, -(sp)
+010442   010346                 1597               mov r3, -(sp)
+010444   005004                 1598               clr r4
+010446   016601 000020          1599               mov 20(sp), r1
+010452   016602 000016          1600               mov 16(sp), r2
+010456   017604 000014          1601               mov @14(sp), r4
+010462   042704 177400          1602               bic #177400, r4
+010466   012705 000004          1603               mov #4, r5
+010472   012703 000004          1604               mov #4, r3
+010476   012746 000004          1605               mov #4, -(sp)       ; counter for cyclic move
+                                1606               ; unmixes a line in a block
+010502                          1607     LineUnmix:
+010502   010246                 1608               mov r2, -(sp)
+010504   010146                 1609               mov r1, -(sp)       ; stores r1-index to img, r2-index to hash
+010506   010346                 1610               mov r3, -(sp)       ;temp iterator for Hash array
+010510   005003                 1611               clr r3
+010512   111101                 1612               movb (r1), r1
+                                1613               ;calculates an index in the Hash function, for a gives byte in the image in order to restore it's initial value.
+010514                          1614     DCalculateIndex:                     ;goes over Hash values until it matches (r1)
+010514   120122                 1615               cmpb r1, (r2)+
+010516   001402                 1616               beq IndexFound
+010520   005203                 1617               inc r3
+010522   000774                 1618               br DCalculateIndex
+010524                          1619     IndexFound:
+010524   110376 000002          1620               movb r3, @2(sp)
+010530   005266 000002          1621               inc 2(sp)
+010534   012603                 1622               mov (sp)+, r3
+010536   012601                 1623               mov (sp)+, r1
+010540   012602                 1624               mov (sp)+, r2
+010542   077321                 1625               sob r3, LineUnmix
+010544   162701 000004          1626               sub #4, r1          ; initialize r1 to points to the first element in line
+                                1627     
+010550   010516                 1628               mov r5,(sp)         ;r5 = 4 in the beginning
+                                1629               ;sub #4, (sp)        ;checks if cyclic move needs to be taken and how many moves should be done
+                                1630               ;neg (sp)
+010552   021627 000004          1631               cmp (sp), #4
+010556   001423                 1632               beq DNextRow
+010560   010546                 1633               mov r5, -(sp)       ;use r5 as counter for cyclic moves
+010562   010346                 1634               mov r3, -(sp)       ;use r3 as a temp register
+                                1635               ;cyclic move operation
+010564                          1636     DCyclicRep:
+010564   005003                 1637               clr r3
+010566   012705 000003          1638               mov #3, r5
+010572   062701 000003          1639               add #3, r1          ;r1 should point to the last element in line
+010576   111103                 1640               movb (r1), r3
+                                1641     
+010600                          1642     DCyclicLineOp:
+010600   005301                 1643               dec r1              ;move the value of (r1) to the next byte
+010602   111161 000001          1644               movb (r1), 1(r1)
+010606   005305                 1645               dec r5
+010610   001373                 1646               bne DCyclicLineOp          ;if finished the cyclic move, continue
+010612   110311                 1647               movb r3, (r1)
+010614   005366 000004          1648               dec 4(sp)
+010620   001361                 1649               bne DCyclicRep        ;if finished cyclic operation on the line, continue
+010622   012603                 1650               mov (sp)+, r3
+010624   012605                 1651               mov (sp)+, r5
+010626                          1652     DNextRow:
+010626   060401                 1653               add r4, r1
+010630   012703 000004          1654               mov #4, r3
+010634   077556                 1655               sob r5, LineUnmix
+010636   005726                 1656               tst (sp)+
+010640   012603                 1657               mov (sp)+, r3
+010642   012605                 1658               mov (sp)+, r5
+010644   012604                 1659               mov (sp)+, r4
+010646   012602                 1660               mov (sp)+, r2
+010650   012601                 1661               mov (sp)+, r1
+010652   000207                 1662               rts pc
+                                1663     
+                                1664     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1665     
+                                1666     ; The state of the stack when enters the proc:
+                                1667     ; return address
+                                1668     ; priority level
+                                1669     ; this subrutine changes the program priority level for enableing interupts
+                                1670     
+010654   010146                 1671     setPrio:  mov r1, -(sp)
+010656   016601 000004          1672               mov 4(sp), r1
+010662   072127 000005          1673               ash #5, r1
+                                1674     
+010666   011646                 1675               mov (sp), -(sp)
+010670   016666 000004 000002   1676               mov 4(sp), 2(sp)
+010676   010166 000004          1677               mov r1, 4(sp)
+                                1678     
+010702   012601                 1679               mov (sp)+, r1
+010704   000002                 1680               rti
+                                1681     
+                                1682     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1683     
+                                1684     ; Recevies the following stack:
+                                1685     ; return address
+                                1686     ; number string
+                                1687     ; empty space for octal num
+                                1688     ; this subrutine gets a string by address and converts it to ocatal num
+                                1689     ; the given string represents an octal number
+010706   010146                 1690     prmToOcCmd: mov r1, -(sp)     ;string iterator
+010710   010346                 1691                 mov r3, -(sp)
+010712   012746 000010          1692                 mov #10, -(sp)
+010716   016601 000010          1693                 mov 10(sp), r1
+                                1694     
+010722   005003                 1695     prmLoop:    clr r3
+010724   111103                 1696                 movb (r1), r3
+010726   162703 000060          1697                 sub #60, r3
+010732   060366 000012          1698                 add r3, 12(sp)
+010736   005201                 1699                 inc r1
+010740   121127 000046          1700                 cmpb   (r1), #'&
+010744   001410                 1701                 beq prmFinish
+010746   005301                 1702                 dec r1
+010750   016603 000012          1703                 mov 12(sp), r3
+010754   070316                 1704                 mul (sp), r3
+010756   010366 000012          1705                 mov r3, 12(sp)
+010762   005201                 1706                 inc r1
+010764   000756                 1707                 br prmLoop
+010766                          1708     prmFinish:
+010766   005726                 1709                 tst (sp)+
+010770   012603                 1710                 mov (sp)+, r3
+010772   012601                 1711                 mov (sp)+, r1
+010774   000207                 1712                 rts pc
+                                1713     
+                                1714     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1715     
+                                1716     ; this subrutine gets an address for sroing data and removes all irelevant chars
+                                1717     ; all data is transfered to the given address without illegal chars
+                                1718     
+010776   010146                 1719     parseImg: mov r1,-(sp)          ; valid Img iterator
+011000   010246                 1720               mov r2, -(sp)         ; temp image terator
+011002   016601 000006          1721               mov 6(sp), r1
+011006   012702 014514          1722               mov #TEMPIMG, r2
+011012   005046                 1723     PIloop:   clr -(sp)
+011014   111216                 1724               movb (r2), (sp)
+011016   005046                 1725               clr -(sp)             ; 1/0 if is in charset
+011020   004767 000036          1726               jsr pc, isValidHex
+011024   121627 000001          1727               cmpb (sp), #1
+011030   001403                 1728               beq copyChar
+011032   005202                 1729               inc r2
+011034   022626                 1730               cmp (sp)+, (sp)+
+011036   001365                 1731               bne PIloop
+011040   112221                 1732     copyChar: movb (r2)+, (r1)+
+011042   005016                 1733               clr (sp)
+011044   022626                 1734               cmp (sp)+, (sp)+
+011046   005366 000010          1735               dec 10(sp)
+011052   001357                 1736               bne PIloop
+                                1737     
+011054   012602                 1738               mov (sp)+, r2
+011056   012601                 1739               mov (sp)+, r1
+011060   000207                 1740               rts pc
+                                1741     ; stack overview:
+                                1742     ; return addresses
+                                1743     ; blank space
+                                1744     ; char to be checked
+011062   010146                 1745     isValidHex: mov r1, -(sp)       ;charset iterator
+011064   012701 011122          1746                 mov #charSet, r1
+011070   121166 000006          1747     nextChar:   cmpb (r1), 6(sp)
+011074   001405                 1748                 beq validFinish
+011076   121127 000046          1749                 cmpb (r1), #'&
+011102   001405                 1750                 beq notCharset
+011104   005201                 1751                 inc r1
+011106   000770                 1752                 br nextChar
+011110   012766 000001 000004   1753     validFinish: mov #1, 4(sp)
+011116   012601                 1754     notCharset:  mov (sp)+, r1
+011120   000207                 1755                  rts pc
+                                1756     
+011122                          1757     .even
+011122      060    061    062   1758     charSet: .ascii<0123456789abcdef&>
+            063    064    065            
+            066    067    070            
+            071    141    142            
+            143    144    145            
+            146    046                   
+011143      000                 1759     .even
+                                1760     
+                                1761     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1762     
+011144                          1763     asciToOc:; 2(sp) - #str , 4(sp) - size
+                                1764     ; this subrutine gets by stack an address of string and its size
+                                1765     ; the given string represent hexa digits
+                                1766     ; all hexa digit are converted to octal codes
+                                1767     
+011144   010146                 1768           mov r1, -(sp)
+011146   010246                 1769           mov r2, -(sp)
+011150   010346                 1770           mov r3, -(sp)
+                                1771     
+011152   016601 000010          1772           mov 10(sp), r1           ; 10(sp)=#str
+011156   016603 000012          1773           mov 12(sp), r3          ; 12(sp)=length
+                                1774     
+011162                          1775     toOcProcess:
+011162   111102                 1776           movb (r1), r2
+011164   010246                 1777           mov r2, -(sp)
+011166   042702 177637          1778           bic #777637, r2
+011172   020227 000140          1779           cmp r2, #140            ; is char?
+011176   001404                 1780           beq ocChar
+011200   012602                 1781     ocNum:  mov (sp)+, r2         ; gets here when the current digit is a num
+011202   042702 177760          1782             bic #777760, r2
+011206   000405                 1783             br ocUpdate
+011210   012602                 1784     ocChar: mov (sp)+, r2         ; gets here when the current digit is a char
+011212   042702 177770          1785             bic #777770, r2
+011216   062702 000011          1786             add #11, r2
+                                1787     
+011222   110221                 1788     ocUpdate:   movb r2, (r1)+    ; converts from ascii to octal
+011224   005303                 1789                 dec r3
+011226   001401                 1790                 beq toOcFinish
+011230   000754                 1791                 br toOcProcess
+                                1792     
+011232   012603                 1793     toOcFinish: mov (sp)+, r3
+011234   012602                 1794                 mov (sp)+, r2
+011236   012601                 1795                 mov (sp)+, r1
+011240   000207                 1796                 rts pc
+                                1797     
+                                1798     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1799     
+                                1800     ; receives the following stack:
+                                1801     ; return address
+                                1802     ; amount of COLUMNS
+                                1803     ; amount of ROWS
+                                1804     ; Img address
+                                1805     ; output:
+                                1806     ; prints the image in HEX format
+                                1807     
+011242   016646 000004          1808     printImg: mov 4(sp), -(sp)
+011246   016646 000004          1809               mov 4(sp), -(sp)
+011252   010146                 1810               mov r1, -(sp)         ;IMG iterator
+011254   016601 000014          1811               mov 14(sp), r1
+011260   032737 000001 177564   1812               bit #1, @#tps
+011266                          1813     PIstepCol:
+011266   012746 000001          1814               mov #1, -(sp)
+011272   010146                 1815               mov r1, -(sp)
+011274   004767 000112          1816               jsr pc, ocToAsci        ;converts the byte into ascii
+011300   022626                 1817               cmp (sp)+, (sp)+
+011302   105737 177564          1818     PIbusy_wait: tstb @#tps
+011306   100375                 1819               bpl PIbusy_wait
+011310   111137 177566          1820               movb (r1), @#tpb        ;prints the byte in the IMG
+011314   012746 000001          1821               mov #1, -(sp)
+011320   010146                 1822               mov r1, -(sp)
+011322   004767 177616          1823               jsr pc, asciToOc        ;converts it back to octal
+011326   022626                 1824               cmp (sp)+, (sp)+
+011330   005201                 1825               inc r1
+011332   005366 000002          1826               dec 2(sp)
+011336   001353                 1827               bne PIstepCol
+011340   105737 177564          1828     PInewline:tstb @#tps              ;prints newline
+011344   100375                 1829               bpl PInewline
+011346   112737 000012 177566   1830               movb #'\n, @#tpb
+011354                          1831     PInewcrline:
+011354   105737 177564          1832               tstb @#tps
+011360   100375                 1833               bpl PInewcrline
+011362   112737 000015 177566   1834               movb #'\r, @#tpb
+                                1835     
+011370   016666 000010 000002   1836               mov 10(sp), 2(sp)
+011376   005366 000004          1837               dec 4(sp)               ;continues to the next line
+011402   001331                 1838               bne PIstepCol
+                                1839     
+011404   012601                 1840               mov (sp)+, r1
+011406   022626                 1841               cmp (sp)+, (sp)+
+011410   000207                 1842               rts pc
+                                1843     
+                                1844     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1845     
+011412                          1846     ocToAsci:; 2(sp) - #str , 4(sp) - size
+                                1847       ; this subrutine gets by stack an address of string and its size
+                                1848       ; the given string represent octal code
+                                1849       ; all octal codes are converted to ascii codes which represents hexa digits
+                                1850     
+011412   010146                 1851           mov r1, -(sp)
+011414   010246                 1852           mov r2, -(sp)
+011416   010346                 1853           mov r3, -(sp)
+                                1854     
+011420   016601 000010          1855           mov 10(sp), r1           ; 10(sp)=#str
+011424   016603 000012          1856           mov 12(sp), r3          ; 12(sp)=length
+                                1857     
+011430                          1858     toAsciProcess:
+011430   111102                 1859               movb (r1), r2
+011432   020227 000012          1860               cmp r2, #12            ; is char?
+011436   002003                 1861               bge asciChar
+011440   052702 000060          1862     asciNum:  bis #60, r2
+011444   000404                 1863               br asciUpdate
+011446   052702 000140          1864     asciChar: bis #140, r2
+011452   162702 000011          1865               sub #11, r2
+                                1866     
+011456   110221                 1867     asciUpdate:   movb r2, (r1)+
+011460   005303                 1868                   dec r3
+011462   001401                 1869                   beq toAsciFinish
+011464   000761                 1870                   br toAsciProcess
+                                1871     
+011466   012603                 1872     toAsciFinish: mov (sp)+, r3
+011470   012602                 1873                 mov (sp)+, r2
+011472   012601                 1874                 mov (sp)+, r1
+011474   000207                 1875                 rts pc
+                                1876     
+                                1877     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                1878     
+                                1879     ;Output is stored in OrigImg
+011476                          1880     encode:   ; 2(sp) - key, 4(sp) - hash, 6(sp) - nCols, 10(sp) - nRows, 12(sp) - OrigImg
+                                1881               ; reveives the stack in the following way:
+                                1882               ; push OrigImg
+                                1883               ; push nRows
+                                1884               ; push nCols
+                                1885               ; push Hash
+                                1886               ; push Key
+011476   016646 000012          1887               mov 12(sp), -(sp)         ;store the OrigImg pointer, so we can update it we the work on the current block
+011502   010546                 1888               mov r5, -(sp)
+011504   005005                 1889               clr r5
+                                1890               ;Encodes a block, thus encrypting it, mixing and encrypting again.
+                                1891               ;Makes sure that we stay in the user's dimentions for the image
+011506                          1892     EncodeBlock:
+011506   016646 000002          1893               mov 2(sp), -(sp)
+011512   016646 000010          1894               mov 10(sp), -(sp)
+011516   016646 000016          1895               mov 16(sp), -(sp)
+011522   004767 000224          1896               jsr pc, EncryptBlock
+011526   005726                 1897               tst (sp)+
+011530   005726                 1898               tst (sp)+
+011532   005726                 1899               tst (sp)+
+011534   016646 000002          1900               mov 2(sp), -(sp)
+011540   016646 000012          1901               mov 12(sp), -(sp)
+011544   016646 000016          1902               mov 16(sp), -(sp)
+011550   004767 000360          1903               jsr pc, MixBlock
+011554   005726                 1904               tst (sp)+
+011556   005726                 1905               tst (sp)+
+011560   005726                 1906               tst (sp)+
+011562   016646 000002          1907               mov 2(sp), -(sp)
+011566   016646 000010          1908               mov 10(sp), -(sp)
+011572   016646 000016          1909               mov 16(sp), -(sp)
+011576   005005                 1910               clr r5
+011600   004767 000146          1911               jsr pc, EncryptBlock
+011604   005726                 1912               tst (sp)+
+011606   005726                 1913               tst (sp)+
+011610   005726                 1914               tst (sp)+
+                                1915     
+011612   010446                 1916               mov r4, -(sp)       ;use r4 as a temp var for mul
+011614   010346                 1917               mov r3, -(sp)       ;use r3 as a temp var for mul
+011616   005003                 1918               clr r3
+011620   117604 000016          1919               movb @16(sp), r4    ;copy nCols
+011624   016603 000016          1920               mov 16(sp), r3      ;copy nRows
+011630   005203                 1921               inc r3
+011632   111303                 1922               movb (r3), r3
+011634   070304                 1923               mul r4, r3          ;we know the image size is less then 2^16
+011636   010304                 1924               mov r3, r4
+011640   066604 000022          1925               add 22(sp), r4      ; 22(sp) is the place where encode got OriImg address
+011644   160504                 1926               sub r5, r4          ;if we exceeded the blocks - should be negative
+011646   005704                 1927               tst r4
+011650   100402                 1928               bmi EMoveBlockRight
+011652   005704                 1929               tst r4
+011654   001023                 1930               bne EDownMoveBlock
+                                1931               ;moves to the right block, i.e: moves 4 columns forward
+011656                          1932     EMoveBlockRight:
+011656   160305                 1933               sub r3, r5          ;initialize the OrigImg pointer to the first line in the column.
+011660   010566 000006          1934               mov r5, 6(sp)       ;basically we substract the multiplication of nColsxnRows from the current
+                                1935                                   ;place in the image's pointer (stored in 2(sp))
+011664   062766 000004 000006   1936               add #4, 6(sp)       ;move to next block from right
+011672   016604 000006          1937               mov 6(sp), r4
+011676   005003                 1938               clr r3
+011700   117603 000016          1939               movb @16(sp), r3    ;copy nCols value to r3
+011704   160304                 1940               sub r3, r4
+011706   016603 000022          1941               mov 22(sp), r3
+011712   160403                 1942               sub r4, r3
+011714   001411                 1943               beq EEndEncodeR     ;if the result=0, we exceeded nCols
+                                1944     
+011716   012603                 1945               mov (sp)+, r3
+011720   012604                 1946               mov (sp)+, r4
+011722   000671                 1947               br EncodeBlock
+                                1948               ; moves to the next block which is down. i.e: adds 4 rows
+011724                          1949     EDownMoveBlock:
+011724   012603                 1950               mov (sp)+, r3
+011726   012604                 1951               mov (sp)+, r4
+011730   010566 000002          1952               mov r5, 2(sp)
+011734   000664                 1953               br EncodeBlock
+011736   000402                 1954               br DendEncode
+                                1955               ; if we finished encoding the image.
+011740                          1956     EEndEncodeR:
+011740   012603                 1957               mov (sp)+, r3
+011742   012604                 1958               mov (sp)+, r4
+011744                          1959     DendEncode:
+011744   012605                 1960               mov (sp)+, r5
+011746   005726                 1961               tst (sp)+           ;pull the r5 we pushed earlier to return r1's value from the encription
+011750   000207                 1962               rts pc
+                                1963     
+                                1964               ;The encryption itself. uses xor for encrypting Key's value and Img's byte value.
+011752                          1965     EncryptBlock:  ; 14(sp) - nCols address, 16(sp) - Key address, 20(sp) - OImg address
+                                1966                    ; Order of passing parameters:
+                                1967                    ; push Image address
+                                1968                    ; push Key address
+                                1969                    ; push nCols address
+011752   010146                 1970               mov r1, -(sp)
+011754   010246                 1971               mov r2, -(sp)
+011756   010446                 1972               mov r4, -(sp)
+011760   010546                 1973               mov r5, -(sp)
+011762   010346                 1974               mov r3, -(sp)
+011764   005004                 1975               clr r4
+011766   016601 000020          1976               mov 20(sp), r1
+011772   016602 000016          1977               mov 16(sp), r2
+011776   017604 000014          1978               mov @14(sp), r4
+012002   042704 177400          1979               bic #177400, r4                 ;gets lower byte of r4, which is nCols
+012006   012705 000004          1980               mov #4, r5                      ;set counters for sob
+012012   012703 000004          1981               mov #4, r3
+                                1982               ;encrypts line-line (row) in the block
+012016                          1983     LineEncrypt:
+012016   010246                 1984               mov r2,-(sp)                    ;store current node and put it's value in r2
+012020   011202                 1985               mov (r2),r2
+012022   010146                 1986               mov r1,-(sp)                    ;because r1 is byte, we store r1's address and move into it the value for xoring
+012024   005001                 1987               clr r1
+012026   117601 000000          1988               movb @0(sp), r1
+012032   074201                 1989               xor r2,r1
+012034   110176 000000          1990               movb r1, @0(sp)
+012040   012601                 1991               mov (sp)+, r1
+012042   005201                 1992               inc r1
+012044   012602                 1993               mov (sp)+, r2
+012046   062702 000002          1994               add #2, r2                       ;moves to next node in key
+012052   027227 000000 177777   1995               cmp @(r2), #177777
+012060   001402                 1996               beq EGetNewKey                    ;cycles again the key if nil
+012062   005712                 1997               tst(r2)
+012064   001004                 1998               bne EKeyIsOk
+                                1999               ; if key was null, or -1, we rotate the key the start.
+012066                          2000     EGetNewKey:
+012066   016602 000016          2001               mov 16(sp), r2
+012072   077527                 2002               sob r5, LineEncrypt
+012074   000402                 2003               br ENextLine
+012076   011202                 2004     EKeyIsOk: mov (r2), r2                    ;get address of new key node
+012100   077532                 2005               sob r5, LineEncrypt
+                                2006               ;continue to the next row in the block
+012102   162701 000004          2007     ENextLine: sub #4, r1                       ;mov r1 to the beginning of line
+012106   060401                 2008               add r4, r1                      ;moves r4 one line forward
+012110   012705 000004          2009               mov #4, r5
+012114   077340                 2010               sob r3, LineEncrypt
+012116   012603                 2011               mov (sp)+, r3
+012120   012605                 2012               mov (sp)+, r5
+012122   010105                 2013               mov r1, r5
+012124   012604                 2014               mov (sp)+, r4
+012126   012602                 2015               mov (sp)+, r2
+012130   012601                 2016               mov (sp)+, r1
+012132   000207                 2017               rts pc
+                                2018     
+012134                          2019     MixBlock: ; 14(sp) - nCols address, 16(sp) - Hash address, 20(sp) - OImg address
+                                2020                ; Order of passing parameters:
+                                2021                ; push Image address
+                                2022                ; push Hash address
+                                2023                ; push nCols address
+012134   010146                 2024               mov r1, -(sp)
+012136   010246                 2025               mov r2, -(sp)
+012140   010446                 2026               mov r4, -(sp)
+012142   010546                 2027               mov r5, -(sp)
+012144   010346                 2028               mov r3, -(sp)
+012146   005004                 2029               clr r4
+012150   016601 000020          2030               mov 20(sp), r1
+012154   016602 000016          2031               mov 16(sp), r2
+012160   017604 000014          2032               mov @14(sp), r4
+012164   042704 177400          2033               bic #177400, r4
+012170   012705 000004          2034               mov #4, r5
+012174   012703 000004          2035               mov #4, r3
+012200   012746 000004          2036               mov #4, -(sp)       ; counter for cyclic move
+                                2037               ;mixes the block. first uses the Hash function, then moves the rows in a cyclic procedure.
+012204                          2038     MixLine:
+012204   010246                 2039               mov r2, -(sp)
+012206   010146                 2040               mov r1, -(sp)       ; stores r1-index to img, r2-index to hash
+                                2041     
+012210   111101                 2042               movb (r1), r1       ;get the value in image to use as index in Hash
+012212   060102                 2043               add r1, r2          ;advance r2 to desired index
+012214   012601                 2044               mov (sp)+, r1
+012216   111202                 2045               movb (r2), r2
+012220   110221                 2046               movb r2, (r1)+
+012222   012602                 2047               mov (sp)+, r2
+012224   077311                 2048               sob r3, MixLine
+012226   162701 000004          2049               sub #4, r1          ; initialize r1 to points to the first element in line
+                                2050     
+012232   010516                 2051               mov r5,(sp)
+012234   162716 000004          2052               sub #4, (sp)        ;checks if cyclic move needs to be taken and how many moves should be done
+012240   005416                 2053               neg (sp)
+012242   005716                 2054               tst (sp)
+012244   001423                 2055               beq MNextLine
+012246   010546                 2056               mov r5, -(sp)       ;use r5 as counter for cyclic moves
+012250   010346                 2057               mov r3, -(sp)       ;use r3 as a temp register
+                                2058               ; Cyclic operation
+012252                          2059     ERepCyclicOp:
+012252   005003                 2060               clr r3
+012254   012705 000003          2061               mov #3, r5
+012260   062701 000003          2062               add #3, r1          ;r1 should point to the last element in line
+012264   111103                 2063               movb (r1), r3
+                                2064     
+012266   005301                 2065     ECyclicOpLine:   dec r1              ;move the value of (r1) to the next byte
+012270   111161 000001          2066               movb (r1), 1(r1)
+012274   005305                 2067               dec r5
+012276   001373                 2068               bne ECyclicOpLine          ;if finished the cyclic move, continue
+012300   110311                 2069               movb r3, (r1)
+012302   005366 000004          2070               dec 4(sp)
+012306   001361                 2071               bne ERepCyclicOp        ;if finished cyclic operation on the line, continue
+012310   012603                 2072               mov (sp)+, r3
+012312   012605                 2073               mov (sp)+, r5
+012314                          2074     MNextLine:
+012314   060401                 2075               add r4, r1
+012316   012703 000004          2076               mov #4, r3
+012322   077550                 2077               sob r5, MixLine
+012324   005726                 2078               tst (sp)+
+012326   012603                 2079               mov (sp)+, r3
+012330   012605                 2080               mov (sp)+, r5
+012332   012604                 2081               mov (sp)+, r4
+012334   012602                 2082               mov (sp)+, r2
+012336   012601                 2083               mov (sp)+, r1
+012340   000207                 2084               rts pc
+                                2085     
+                                2086     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                2087     
+                                2088     ; recevies num of args to print, then the string addresses
+                                2089     ; Stack:
+                                2090     ; - return address
+                                2091     ; - num of args
+                                2092     ; - addresses
+                                2093     ; this subrutine prints all given strings in stack
+                                2094     
+012342   010046                 2095     printText:  mov r0, -(sp)
+012344   005746                 2096                 tst -(sp)      ; index for current string to print in the stack
+012346   010146                 2097                 mov r1,-(sp)      ; string iterator
+012350   012766 000012 000002   2098                 mov #12, 2(sp)   ; advance the index to the first string
+012356   016600 000010          2099                 mov 10(sp), r0  ; r0 = num of args
+012362                          2100     PTprintString:
+012362   005001                 2101                 clr r1
+012364   066601 000002          2102                 add 2(sp), r1
+012370   062766 000002 000002   2103                 add #2, 2(sp)     ; point to next string
+012376   060601                 2104                 add sp, r1        ; r1 will point to the current string to print in the stack
+                                2105     
+012400   105737 177564          2106     PTprintLoop:  tstb @#tps
+012404   100375                 2107                 bpl PTprintLoop
+012406   127127 000000 000046   2108                 cmpb @(r1), #'&
+012414   001405                 2109                 beq PTstringEnd
+012416   117137 000000 177566   2110                 movb @(r1), @#tpb
+012424   005211                 2111                 inc (r1)
+012426   000764                 2112                 br PTprintLoop
+                                2113     
+012430   077024                 2114     PTstringEnd:  sob r0, PTprintString
+                                2115     
+012432   012601                 2116                 mov (sp)+, r1
+012434   005726                 2117                 tst (sp)+
+012436   012600                 2118                 mov (sp)+, r0
+012440   000207                 2119                 rts pc
+                                2120     
+                                2121     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                2122     
+                                2123     ; receives the following stack:
+                                2124     ; return address
+                                2125     ; string to compare
+                                2126     ; output: 0\1
+                                2127     ; 1 - if the given string is not equal
+                                2128     ; 0 - if the given string is equal
+                                2129     ; the second string is transfered INLINE
+012442   010146                 2130     cmpStr:   mov r1, -(sp)
+012444   010201                 2131               mov r2, r1
+012446   122176 000004          2132     CSequal:  cmpb (r1)+, @4(sp)
+012452   001006                 2133               bne CSnequal
+012454   005266 000004          2134               inc 4(sp)               ;advances string to compare to
+012460   121127 000046          2135               cmpb (r1), #'&
+012464   001405                 2136               beq CSexit
+012466   000767                 2137               br CSequal
+                                2138     
+012470   012766 000001 000004   2139     CSnequal:    mov #1, 4(sp)
+012476   000404                 2140               br CSend
+012500                          2141     CSexit:
+012500   012766 000000 000004   2142               mov #0, 4(sp)
+012506   000400                 2143               br CSend
+                                2144     
+012510   010246                 2145     CSend:    mov r2, -(sp)
+012512   005046                 2146               clr -(sp)
+012514   004767 000020          2147               jsr pc, strlen
+012520   061602                 2148               add (sp), r2
+012522   032702 000001          2149               bit #1, r2
+012526   001401                 2150               beq CSfin
+012530   005202                 2151               inc r2
+012532   022626                 2152     CSfin:    cmp (sp)+, (sp)+
+012534   012601                 2153               mov (sp)+, r1
+012536   000202                 2154               rts r2
+                                2155     
+                                2156     
+                                2157     ; recevies the following stack (HOW THE STACK LOOKS WHEN ENTERS THE PROC):
+                                2158     ; return address
+                                2159     ; len of string after calculation (enters empty)
+                                2160     ; string itself (addr)
+                                2161     
+012540   010146                 2162     strlen: mov r1, -(sp)
+012542   016601 000006          2163             mov 6(sp), r1       ;4(sp) = string
+012546   005066 000004          2164             clr 4(sp)
+012552   121127 000046          2165     strloop:  cmpb (r1), #'&
+012556   001404                 2166               beq strFin
+012560   005266 000004          2167               inc 4(sp)         ;6(sp) = strlen counter
+012564   005201                 2168               inc r1
+012566   000771                 2169               br strloop
+012570   005266 000004          2170     strFin:   inc 4(sp)         ;counts the '&'
+012574   012601                 2171               mov (sp)+, r1
+012576   000207                 2172               rts pc
+                                2173     
+                                2174     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                2175     
+                                2176     ; Recevies the following stack:
+                                2177     ; return address
+                                2178     ; recevied string
+                                2179     ; empty space for new string output
+                                2180     
+012600   010146                 2181     nextArgCmd: mov r1, -(sp)
+012602   016601 000004          2182                 mov 4(sp), r1
+                                2183     
+012606   121127 000046          2184     NAloop:     cmpb (r1), #'&
+012612   001405                 2185                 beq NAamper
+012614   121127 000100          2186                 cmpb (r1), #'@
+012620   001407                 2187                 beq NAsht
+012622   005201                 2188                 inc r1
+012624   000770                 2189                 br NAloop
+012626   010166 000006          2190     NAamper:    mov r1, 6(sp)
+012632   005266 000006          2191                 inc 6(sp)
+012636   000402                 2192                 br NAend
+                                2193     
+012640   010166 000006          2194     NAsht:      mov r1, 6(sp)
+012644   012601                 2195     NAend:      mov (sp)+, r1
+012646   000207                 2196                 rts pc
+                                2197     
+                                2198     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                2199     
+012650                          2200     parseCmd:
+                                2201     ; this subrutine doesnt get any input values
+                                2202     ; it removes all unnessery spaces in TEMPCMD and formatted the command to be like "encode&4&4&@"
+                                2203     ; & represents an end of a single word in the command
+                                2204     ; @ represents an end of a command line
+                                2205     ; all data is stored in CMDLINE label
+                                2206     
+012650   010046                 2207           mov r0, -(sp)
+012652   010146                 2208           mov r1, -(sp)
+012654   010246                 2209           mov r2, -(sp)
+012656   012700 013450          2210           mov #TEMPCMD, r0
+012662   012701 013570          2211           mov #CMDLINE, r1
+012666   005002                 2212           clr r2
+                                2213     
+012670   121027 000040          2214                     cmpb (r0), #40
+012674   001417                 2215                     beq prsCmdClr
+                                2216     
+012676   020227 000050          2217     prsCmdPrcs:     cmp r2, #50
+012702   103030                 2218                     bhis prsCmdFinish
+012704   121027 000046          2219                     cmpb (r0), #'&
+012710   001425                 2220                     beq prsCmdFinish
+012712   121027 000040          2221                     cmpb (r0), #40         ;40=" "
+012716   001403                 2222                     beq prsCmdSpace
+012720   005202                 2223                     inc r2
+012722   112021                 2224                     movb (r0)+, (r1)+
+012724   000764                 2225                     br prsCmdPrcs
+                                2226     
+012726   005200                 2227     prsCmdSpace:    inc r0
+012730   112721 000046          2228                     movb #'&, (r1)+
+012734   020227 000050          2229     prsCmdClr:      cmp r2, #50
+012740   103011                 2230                     bhis prsCmdFinish
+012742   121027 000046          2231                     cmpb (r0), #'&
+012746   001406                 2232                     beq prsCmdFinish
+012750   121027 000040          2233                     cmpb (r0), #40         ;40=" "
+012754   001350                 2234                     bne prsCmdPrcs
+012756   005202                 2235                     inc r2
+012760   005200                 2236                     inc r0
+012762   000764                 2237                     br prsCmdClr
+                                2238     
+012764   112721 000046          2239     prsCmdFinish:   movb #'&, (r1)+
+012770   112711 000100          2240                     movb #'@, (r1)
+012774   012602                 2241                     mov (sp)+, r2
+012776   012601                 2242                     mov (sp)+, r1
+013000   012600                 2243                     mov (sp)+, r0
+013002   000207                 2244                     rts pc
+                                2245     
+                                2246     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                2247     
+013004   000000                 2248     finish: halt
+013006      127    145    154   2249     mainPrmt: .ascii<Welcome!\n\r&>
+            143    157    155            
+            145    041    012            
+            015    046                   
+013021      044    040    046   2250     cmdPrmt: .ascii<$ &>
+013024      107    157    157   2251     quitPrmt: .ascii<Goodbye!\n\r&>
+            144    142    171            
+            145    041    012            
+            015    046                   
+013037      125    156    153   2252     unknownPrmt: .ascii<Unknown command &>
+            156    157    167            
+            156    040    143            
+            157    155    155            
+            141    156    144            
+            040    046                   
+013060      056    012    015   2253     dotPrmt: .ascii<.\n\r&>
+            046                          
+013064      120    154    145   2254     encPrmt1: .ascii<Please enter image to encode\n\r&>
+            141    163    145            
+            040    145    156            
+            164    145    162            
+            040    151    155            
+            141    147    145            
+            040    164    157            
+            040    145    156            
+            143    157    144            
+            145    012    015            
+            046                          
+013123      012    015    124   2255     encPrmt2: .ascii<\n\rThe encoded image is:\n\r&>
+            150    145    040            
+            145    156    143            
+            157    144    145            
+            144    040    151            
+            155    141    147            
+            145    040    151            
+            163    072    012            
+            015    046                   
+013155      120    154    145   2256     decPrmt1: .ascii<Please enter image to decode\n\r&>
+            141    163    145            
+            040    145    156            
+            164    145    162            
+            040    151    155            
+            141    147    145            
+            040    164    157            
+            040    144    145            
+            143    157    144            
+            145    012    015            
+            046                          
+013214      012    015    124   2257     decPrmt2: .ascii<\n\rThe decoded image is:\n\r&>
+            150    145    040            
+            144    145    143            
+            157    144    145            
+            144    040    151            
+            155    141    147            
+            145    040    151            
+            163    072    012            
+            015    046                   
+013246      105    156    143   2258     setKeyPrmp: .ascii<Encryption key set to &>
+            162    171    160            
+            164    151    157            
+            156    040    153            
+            145    171    040            
+            163    145    164            
+            040    164    157            
+            040    046                   
+013275      120    154    145   2259     crkPrmt1: .ascii<Please enter image\n\r&>
+            141    163    145            
+            040    145    156            
+            164    145    162            
+            040    151    155            
+            141    147    145            
+            012    015    046            
+013322      012    015    120   2260     crkPrmt2: .ascii<\n\rPlease enter encoded image\n\r&>
+            154    145    141            
+            163    145    040            
+            145    156    164            
+            145    162    040            
+            145    156    143            
+            157    144    145            
+            144    040    151            
+            155    141    147            
+            145    012    015            
+            046                          
+013361      012    015    124   2261     crkPrmt3: .ascii<\n\rThe key is: &>
+            150    145    040            
+            153    145    171            
+            040    151    163            
+            072    040    046            
+013400      143    162    141   2262     crkStr: .ascii<crack&>
+            143    153    046            
+013406      012    015    046   2263     newLinePrmt: .ascii<\n\r&>
+013411      000    001    002   2264     Hash:  .byte  0,1,2,3,4,5,6,7,10,11,12,13,14,15,16,17
+            003    004    005            
+            006    007    010            
+            011    012    013            
+            014    015    016            
+            017                          
+013431      000                 2265     IMG1Cols: .byte 0
+013432      000                 2266     IMG1Rows: .byte 0
+013433      000                 2267     IMG3Cols: .byte 0
+013434      000                 2268     IMG3Rows: .byte 0
+013435      000                 2269     KeyMaxSize: .byte 0
+013436      000                 2270     Ctrl: .byte 0
+013437      000                 2271     .even
+013440   000000                 2272     IMGIT: .word 0
+013442   000000                 2273     CMDIT: .word 0
+013444   000000                 2274     ROWSADR: .word 0
+013446   000000                 2275     COLSADR: .word 0
+013450   000000 000000 000000   2276     TEMPCMD: .blkw 50
+013570   000000 000000 000000   2277     CMDLINE: .blkw 50
+013710   000000 000000          2278     KeyUse: .word 0, 0
+013714   000000 000000 000000   2279             .blkw 100
+014114   000000 000000 000000   2280     Key: .blkw 100
+014314   000000 000000 000000   2281     KeyStr: .blkw 100
+014514   000000 000000 000000   2282     TEMPIMG: .blkw 1000
+016514   000000                 2283     clkctrl:   .word 0
+016516   000000                 2284     cracktime: .word 0.
+016520   000000                 2285     cracksecs: .word 0.
+016522   000000                 2286     regftime: .word 0.                   ;global variable
+016524   000000                 2287     regfsec: .word 0.                ;global variable
+                                2288     
+                                2289     ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                2290     
+016526   001750                 2291     rate: .word 1000.
+016530   000000 000000 000000   2292     IMG1: .blkw 1000
+020530   000000 000000 000000   2293     IMG2: .blkw 1000
+022530   000000 000000 000000   2294     IMG3: .blkw 1000
+
+
+	S Y M B O L   T A B L E
+	=======================
+
+SYMBOL    VALUE   TYPE
+------    -----   ----
+tks       177560  abs      
+tkb       177562  abs      
+tps       177564  abs      
+tpb       177566  abs      
+lcs       177546  abs      
+cmdInput  001070  text     
+clock     004370  text     
+main      001000  text     
+cmdPrmt   013021  text     
+mainPrmt  013006  text     
+printTex  012342  text     
+TEMPCMD   013450  text     
+CMDIT     013442  text     
+loop      001052  text     
+finish    013004  text     
+Ctrl      013436  text     
+pass2     001104  text     
+imgInput  006034  text     
+cmdInpEn  001150  text     
+cmdInpFi  001376  text     
+cmdInpPr  001310  text     
+cmdInpUp  001234  text     
+cmdPrtLF  001156  text     
+cmdPrtCR  001174  text     
+parseCmd  012650  text     
+FUNCS     001432  text     
+cmdIpBS1  001246  text     
+cmdIpBS2  001266  text     
+clrFinis  001334  text     
+finLoop1  001342  text     
+finLoop2  001360  text     
+cmdIpEnd  001424  text     
+chkEncod  001432  text     
+CMDLINE   013570  text     
+cmpStr    012442  text     
+chkDecod  001772  text     
+clkctrl   016514  text     
+clk1      001500  text     
+clockON   004512  text     
+nextArgC  012600  text     
+prmToOcC  010706  text     
+IMG3Rows  013434  text     
+IMG3Cols  013433  text     
+encPrmt1  013064  text     
+COLSADR   013446  text     
+ROWSADR   013444  text     
+TEMPIMG   014514  text     
+IMGIT     013440  text     
+finEnc    001644  text     
+cmdEnc    005654  text     
+clk2      001740  text     
+clockOFF  004522  text     
+clkcont1  001746  text     
+printClo  004722  text     
+chkHash   002332  text     
+clk4      002040  text     
+decPrmt1  013155  text     
+finDec    002204  text     
+cmdDec    007614  text     
+clk5      002300  text     
+clkcont2  002306  text     
+chkKey    002474  text     
+clk6      002400  text     
+cmdSetHa  007440  text     
+clk7      002450  text     
+clkcont3  002456  text     
+chkCrack  002636  text     
+clk8      002542  text     
+cmdSetKe  007254  text     
+clk9      002612  text     
+clkcont4  002620  text     
+pass3     002670  text     
+chkPrint  003670  text     
+IMG1Rows  013432  text     
+IMG1Cols  013431  text     
+KeyMaxSi  013435  text     
+crkPrmt1  013275  text     
+finCrk1   003074  text     
+IMG1      016530  text     
+parseImg  010776  text     
+asciToOc  011144  text     
+crkPrmt2  013322  text     
+finCrk2   003214  text     
+IMG2      020530  text     
+newLineP  013406  text     
+cmdCrack  006512  text     
+clk3      003450  text     
+crkStr    013400  text     
+cont1     003612  text     
+dollar    003500  text     
+space     003516  text     
+cmdCont1  003550  text     
+cmdCont2  003576  text     
+prin      003556  text     
+cont2     003626  text     
+cont3     003654  text     
+print     003634  text     
+chkQuit   004044  text     
+fin123    004040  text     
+cl1       003754  text     
+cmdPrint  004532  text     
+cl2       004020  text     
+clkcont5  004026  text     
+chkFail   004116  text     
+quitPrmt  013024  text     
+dotPrmt   013060  text     
+unknownP  013037  text     
+crkSyste  004152  text     
+cmpImg    007052  text     
+sysFind   004224  text     
+Key       014114  text     
+nextKey   006776  text     
+sysFinis  004364  text     
+encode    011476  text     
+decode    007774  text     
+cracktim  016516  text     
+rate      016526  text     
+checkreg  004412  text     
+cracksec  016520  text     
+ccontinu  004434  text     
+regftime  016522  text     
+regfsec   016524  text     
+regfclk   004464  text     
+crackclk  004472  text     
+bothclk   004500  text     
+fclock    004510  text     
+IMG3      022530  text     
+PstepCol  004556  text     
+Pbusy_wa  004572  text     
+Pprintst  004616  text     
+Pcont     004624  text     
+ocToAsci  011412  text     
+Pnewline  004650  text     
+Pnewcrli  004664  text     
+str2      005356  text     
+pushregf  005026  text     
+printz    005056  text     
+tmprint   005046  text     
+numPrint  005412  text     
+dotprint  005074  text     
+bb_w      005066  text     
+ib_w      005102  text     
+movereg   005156  text     
+divmils   005166  text     
+milprint  005230  text     
+qb_w      005240  text     
+str3      005404  text     
+nullcrac  005334  text     
+endTime   005350  text     
+str1      005376  text     
+devide    005432  text     
+nfinish   005642  text     
+keepdevi  005600  text     
+printnum  005460  text     
+nb_w      005470  text     
+iszero    005572  text     
+print_ze  005522  text     
+dagain    005530  text     
+zb_w      005556  text     
+nclear    005630  text     
+Hash      013411  text     
+KeyUse    013710  text     
+encPrmt2  013123  text     
+printImg  011242  text     
+imgInpEn  006136  text     
+imgInpFi  006402  text     
+imgInpPr  006356  text     
+imgInpUp  006302  text     
+imgInpCo  006420  text     
+imgPrint  006250  text     
+pass4     006214  text     
+pass5     006230  text     
+pass6     006244  text     
+imgIpBS1  006314  text     
+imgIpBS2  006334  text     
+imgIpEnd  006410  text     
+countCon  006432  text     
+countCha  006432  text     
+countNum  006450  text     
+countTru  006466  text     
+countFal  006470  text     
+countFin  006500  text     
+setPrio   010654  text     
+crkGenKe  007164  text     
+keyToStr  006710  text     
+KeyStr    014314  text     
+crkPrmt3  013361  text     
+keyStrPr  006730  text     
+keyStrFi  006756  text     
+nkCheckK  007000  text     
+nkStart   007022  text     
+nkFinish  007050  text     
+nkIncNod  007024  text     
+nkNextNo  007036  text     
+cmpByte   007072  text     
+cmpFalse  007132  text     
+cmpTrue   007142  text     
+cmpFinis  007152  text     
+CgenNext  007204  text     
+keyGetSi  007272  text     
+keyFinis  007430  text     
+keyCreat  007334  text     
+setKeySu  007360  text     
+setKeyPr  013246  text     
+SHupdate  007476  text     
+SHend     007610  text     
+SHstr     007562  text     
+decPrmt2  013214  text     
+DecodeBl  010004  text     
+DecryptB  010250  text     
+UnmixBlo  010432  text     
+DMoveBlo  010154  text     
+CompBloc  010222  text     
+DEndDeco  010236  text     
+FinishDe  010242  text     
+DecryptL  010314  text     
+DGetNewK  010364  text     
+DKeyLenI  010374  text     
+DNextLin  010400  text     
+LineUnmi  010502  text     
+DCalcula  010514  text     
+IndexFou  010524  text     
+DNextRow  010626  text     
+DCyclicR  010564  text     
+DCyclicL  010600  text     
+prmLoop   010722  text     
+prmFinis  010766  text     
+PIloop    011012  text     
+isValidH  011062  text     
+copyChar  011040  text     
+charSet   011122  text     
+nextChar  011070  text     
+validFin  011110  text     
+notChars  011116  text     
+toOcProc  011162  text     
+ocChar    011210  text     
+ocNum     011200  text     
+ocUpdate  011222  text     
+toOcFini  011232  text     
+PIstepCo  011266  text     
+PIbusy_w  011302  text     
+PInewlin  011340  text     
+PInewcrl  011354  text     
+toAsciPr  011430  text     
+asciChar  011446  text     
+asciNum   011440  text     
+asciUpda  011456  text     
+toAsciFi  011466  text     
+EncodeBl  011506  text     
+EncryptB  011752  text     
+MixBlock  012134  text     
+EMoveBlo  011656  text     
+EDownMov  011724  text     
+EEndEnco  011740  text     
+DendEnco  011744  text     
+LineEncr  012016  text     
+EGetNewK  012066  text     
+EKeyIsOk  012076  text     
+ENextLin  012102  text     
+MixLine   012204  text     
+MNextLin  012314  text     
+ERepCycl  012252  text     
+ECyclicO  012266  text     
+PTprintS  012362  text     
+PTprintL  012400  text     
+PTstring  012430  text     
+CSequal   012446  text     
+CSnequal  012470  text     
+CSexit    012500  text     
+CSend     012510  text     
+strlen    012540  text     
+CSfin     012532  text     
+strloop   012552  text     
+strFin    012570  text     
+NAloop    012606  text     
+NAamper   012626  text     
+NAsht     012640  text     
+NAend     012644  text     
+prsCmdCl  012734  text     
+prsCmdPr  012676  text     
+prsCmdFi  012764  text     
+prsCmdSp  012726  text     
